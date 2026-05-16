@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMP試験 演習システム（共有版）</title>
+<style>
+  :root {
+    --primary: #1a56a0;
+    --primary-dark: #13407a;
+    --accent: #f0a500;
+    --success: #2e7d32;
+    --error: #c62828;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --border: #dde3ef;
+    --people: #7b1fa2;
+    --process: #1565c0;
+    --biz: #e65100;
+    --sync: #00796b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    flex-wrap: wrap;
+  }
+  .header h1 { font-size: 1.1rem; font-weight: 700; }
+  .header .sub { font-size: 0.75rem; opacity: 0.85; }
+  .header-right { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .btn-ghost {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.25); }
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .sync-badge.ok { background: #e0f2f1; color: var(--sync); }
+  .sync-badge.ng { background: #ffebee; color: #c62828; }
+  .sync-badge.none { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
+
+  .screen { display: none; padding: 20px 16px; max-width: 800px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* HOME */
+  .welcome-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 24px 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .welcome-card h2 { font-size: 1.3rem; color: var(--primary); margin-bottom: 6px; }
+  .welcome-card p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-box {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    border-top: 3px solid var(--primary);
+  }
+  .stat-box.people { border-top-color: var(--people); }
+  .stat-box.process { border-top-color: var(--process); }
+  .stat-box.biz { border-top-color: var(--biz); }
+  .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+  .stat-box.people .stat-num { color: var(--people); }
+  .stat-box.process .stat-num { color: var(--process); }
+  .stat-box.biz .stat-num { color: var(--biz); }
+  .stat-label { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .mode-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .mode-card:hover, .mode-card.selected { border-color: var(--primary); background: #eef4ff; }
+  .mode-card.weak:hover, .mode-card.weak.selected { border-color: var(--error); background: #fff5f5; }
+  .mode-icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .mode-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+  .mode-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .mode-card .weak-count {
+    display: inline-block; background: #ffebee; color: var(--error);
+    border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; font-weight: 700; margin-top: 6px;
+  }
+  .count-selector {
+    background: var(--card); border-radius: 12px; padding: 16px 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 16px;
+  }
+  .count-selector h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+  .count-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .count-btn {
+    padding: 9px 18px; border: 2px solid var(--border); border-radius: 8px;
+    background: #fff; cursor: pointer; font-size: 0.88rem; font-weight: 600;
+    color: var(--text); transition: all 0.15s;
+  }
+  .count-btn:hover, .count-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .custom-input { display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  .custom-input.show { display: flex; }
+  .custom-input input {
+    width: 80px; padding: 7px 10px; border: 2px solid var(--border);
+    border-radius: 8px; font-size: 0.88rem; text-align: center;
+  }
+  .custom-input input:focus { outline: none; border-color: var(--primary); }
+  .custom-input label { font-size: 0.82rem; color: var(--muted); }
+  .btn-start {
+    width: 100%; padding: 15px; background: var(--primary); color: #fff;
+    border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 12px rgba(26,86,160,0.3);
+  }
+  .btn-start:hover { background: var(--primary-dark); }
+
+  /* QUIZ */
+  .quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .quiz-progress { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  .cat-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+  .cat-人 { background: #f3e5f5; color: var(--people); }
+  .cat-プロセス { background: #e3f2fd; color: var(--process); }
+  .cat-ビジネス環境 { background: #fff3e0; color: var(--biz); }
+  .progress-bar-wrap { background: var(--border); border-radius: 4px; height: 5px; margin-bottom: 16px; }
+  .progress-bar { height: 5px; background: var(--primary); border-radius: 4px; transition: width 0.3s; }
+  .question-card {
+    background: var(--card); border-radius: 14px; padding: 22px 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07); margin-bottom: 12px;
+  }
+  .question-num { font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .question-text { font-size: 0.94rem; line-height: 1.75; color: var(--text); white-space: pre-wrap; }
+  .choices-list { display: flex; flex-direction: column; gap: 8px; }
+  .choice-btn {
+    background: var(--card); border: 2px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; text-align: left; cursor: pointer; font-size: 0.88rem;
+    line-height: 1.5; color: var(--text); transition: all 0.15s; width: 100%;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: var(--primary); background: #eef4ff; }
+  .choice-btn.selected-correct { border-color: var(--success); background: #e8f5e9; color: var(--success); font-weight: 600; }
+  .choice-btn.selected-wrong { border-color: var(--error); background: #ffebee; color: var(--error); }
+  .choice-btn.show-correct { border-color: var(--success); background: #e8f5e9; color: var(--success); font-weight: 600; }
+  .choice-btn:disabled { cursor: default; }
+  .multi-hint {
+    background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px;
+    padding: 7px 12px; font-size: 0.8rem; color: #7c5700; margin-bottom: 8px;
+  }
+  .multi-submit {
+    margin-top: 12px; padding: 11px 24px; background: var(--primary); color: #fff;
+    border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; display: none;
+  }
+  .multi-submit.show { display: inline-block; }
+  .result-card {
+    background: var(--card); border-radius: 12px; padding: 18px 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07); margin-top: 12px;
+    border-left: 4px solid var(--success); animation: fadeIn 0.3s ease;
+  }
+  .result-card.wrong { border-left-color: var(--error); }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .result-label { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .result-label.correct { color: var(--success); }
+  .result-label.wrong { color: var(--error); }
+  .correct-ans { font-size: 0.82rem; color: var(--muted); margin-bottom: 8px; }
+  .explanation {
+    font-size: 0.86rem; line-height: 1.7; color: #333;
+    background: #f8f9fc; border-radius: 8px; padding: 12px 14px;
+  }
+  .btn-next {
+    margin-top: 14px; width: 100%; padding: 13px; background: var(--primary);
+    color: #fff; border: none; border-radius: 10px; font-size: 0.92rem;
+    font-weight: 700; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-next:hover { background: var(--primary-dark); }
+
+  /* RESULT */
+  .result-summary {
+    background: var(--card); border-radius: 14px; padding: 28px 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07); text-align: center; margin-bottom: 16px;
+  }
+  .big-score { font-size: 3rem; font-weight: 900; color: var(--primary); line-height: 1; }
+  .big-score span { font-size: 1.1rem; color: var(--muted); font-weight: 400; }
+  .score-sub { font-size: 0.88rem; color: var(--muted); margin-top: 6px; }
+  .grade-badge { display: inline-block; padding: 5px 18px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; margin-top: 10px; }
+  .grade-s { background: #fff9c4; color: #f57f17; }
+  .grade-a { background: #e8f5e9; color: #2e7d32; }
+  .grade-b { background: #e3f2fd; color: #1565c0; }
+  .grade-c { background: #ffebee; color: #c62828; }
+  .cat-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .cat-result-box {
+    background: var(--card); border-radius: 10px; padding: 14px 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05); text-align: center;
+  }
+  .cat-result-box h4 { font-size: 0.78rem; margin-bottom: 8px; }
+  .cat-score-big { font-size: 1.6rem; font-weight: 800; }
+  .cat-score-sub { font-size: 0.72rem; color: var(--muted); }
+  .mini-bar-wrap { background: #eee; border-radius: 4px; height: 6px; margin-top: 6px; }
+  .mini-bar { height: 6px; border-radius: 4px; }
+  .weak-list-section {
+    background: var(--card); border-radius: 12px; padding: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 14px;
+  }
+  .weak-list-section h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+  .weak-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 0;
+    border-bottom: 1px solid var(--border); font-size: 0.82rem;
+  }
+  .weak-item:last-child { border-bottom: none; }
+  .weak-qnum { font-weight: 700; color: var(--error); min-width: 34px; }
+  .wrong-cnt { font-size: 0.72rem; color: var(--error); font-weight: 700; white-space: nowrap; }
+  .result-actions { display: flex; gap: 10px; }
+  .btn-secondary {
+    flex: 1; padding: 13px; background: var(--card); color: var(--primary);
+    border: 2px solid var(--primary); border-radius: 10px; font-size: 0.88rem;
+    font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: #eef4ff; }
+  .btn-primary {
+    flex: 1; padding: 13px; background: var(--primary); color: #fff;
+    border: none; border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--primary-dark); }
+
+  /* STATS */
+  .stats-section {
+    background: var(--card); border-radius: 12px; padding: 20px 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 14px;
+  }
+  .stats-section h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 14px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+  .stats-row-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem;
+  }
+  .stats-row-item:last-child { border-bottom: none; }
+  .bar-wrap { width: 100px; height: 8px; background: #eee; border-radius: 4px; }
+  .bar-fill { height: 8px; border-radius: 4px; }
+  .no-data { text-align: center; color: var(--muted); padding: 30px 0; font-size: 0.88rem; }
+
+  /* ===== SETTINGS SCREEN ===== */
+  .settings-card {
+    background: var(--card); border-radius: 14px; padding: 24px 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.07); margin-bottom: 16px;
+  }
+  .settings-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+  .settings-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+  .setting-row { margin-bottom: 18px; }
+  .setting-row label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+  .setting-row input {
+    width: 100%; padding: 10px 14px; border: 2px solid var(--border);
+    border-radius: 8px; font-size: 0.88rem; transition: border 0.2s;
+  }
+  .setting-row input:focus { outline: none; border-color: var(--primary); }
+  .setting-row .hint { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .test-btn {
+    padding: 9px 20px; background: var(--sync); color: #fff;
+    border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; margin-top: 4px;
+  }
+  .test-btn:hover { opacity: 0.9; }
+  .test-result {
+    margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+    font-size: 0.82rem; display: none;
+  }
+  .test-result.ok { background: #e0f2f1; color: #00695c; display: block; }
+  .test-result.ng { background: #ffebee; color: #c62828; display: block; }
+
+  .steps-card {
+    background: #f0f9ff; border: 1px solid #b3e0f7; border-radius: 12px;
+    padding: 18px 18px; margin-bottom: 16px;
+  }
+  .steps-card h4 { font-size: 0.88rem; font-weight: 700; color: #0277bd; margin-bottom: 12px; }
+  .step-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.82rem; line-height: 1.6; }
+  .step-num {
+    min-width: 22px; height: 22px; background: #0277bd; color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+  }
+  .step-item a { color: #0277bd; }
+  code {
+    background: #e8f4f8; padding: 2px 6px; border-radius: 4px;
+    font-family: monospace; font-size: 0.85em;
+  }
+
+  /* sync status overlay */
+  .sync-toast {
+    position: fixed; bottom: 20px; right: 16px;
+    background: #333; color: #fff; padding: 10px 16px;
+    border-radius: 8px; font-size: 0.82rem; z-index: 999;
+    animation: slideIn 0.3s ease; display: none;
+  }
+  .sync-toast.show { display: block; }
+  @keyframes slideIn { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+
+  @media (max-width: 500px) {
+    .mode-cards { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr; }
+    .cat-results { grid-template-columns: 1fr; }
+    .result-actions { flex-direction: column; }
+    .bar-wrap { width: 70px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📋 PMP演習（共有版）</h1>
+    <div class="sub">Google Sheetsデータ同期対応</div>
+  </div>
+  <div class="header-right">
+    <span class="sync-badge none" id="sync-badge">⚙ Sheets未設定</span>
+    <button class="btn-ghost" onclick="showScreen('settings')">⚙ 設定</button>
+    <button class="btn-ghost" onclick="showScreen('stats')">📊 統計</button>
+    <button class="btn-ghost" onclick="resetAll()">🗑</button>
+  </div>
+</div>
+
+<div class="sync-toast" id="sync-toast"></div>
+
+<!-- HOME SCREEN -->
+<div id="screen-home" class="screen active">
+  <div class="welcome-card">
+    <h2>PMP演習モードを選択</h2>
+    <p>全180問から出題。成績はブラウザとGoogleスプレッドシートに保存されます。</p>
+  </div>
+  <div class="stats-row" id="home-stats"></div>
+  <div class="mode-cards">
+    <div class="mode-card selected" id="mode-normal" onclick="selectMode('normal')">
+      <div class="mode-icon">📚</div>
+      <h3>通常モード</h3>
+      <p>全180問からランダムに出題します</p>
+    </div>
+    <div class="mode-card weak" id="mode-weak" onclick="selectMode('weak')">
+      <div class="mode-icon">🎯</div>
+      <h3>苦手集中モード</h3>
+      <p>誤答した問題を優先的に出題します</p>
+      <div class="weak-count" id="weak-count-label">0問</div>
+    </div>
+  </div>
+  <div class="count-selector">
+    <h3>出題数を選択</h3>
+    <div class="count-btns">
+      <button class="count-btn selected" data-n="10" onclick="selectCount(10, this)">10問</button>
+      <button class="count-btn" data-n="20" onclick="selectCount(20, this)">20問</button>
+      <button class="count-btn" data-n="30" onclick="selectCount(30, this)">30問</button>
+      <button class="count-btn" data-n="0" onclick="selectCount(0, this)">カスタム</button>
+    </div>
+    <div class="custom-input" id="custom-input">
+      <label>問題数:</label>
+      <input type="number" id="custom-n" min="1" max="180" value="15" oninput="updateCustomCount(this.value)">
+      <label>問</label>
+    </div>
+  </div>
+  <button class="btn-start" onclick="startQuiz()">演習を開始する →</button>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-header">
+    <div class="quiz-progress" id="quiz-progress">1 / 10</div>
+    <div class="cat-badge" id="cat-badge"></div>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+  <div class="question-card">
+    <div class="question-num" id="question-num"></div>
+    <div class="question-text" id="question-text"></div>
+  </div>
+  <div id="multi-hint" class="multi-hint" style="display:none">
+    ⚡ この問題は複数の選択肢が正答です。すべて選択してから「確定」を押してください。
+  </div>
+  <div class="choices-list" id="choices-list"></div>
+  <button class="multi-submit" id="multi-submit" onclick="submitMulti()">確定する</button>
+  <div id="result-card" class="result-card" style="display:none">
+    <div class="result-label" id="result-label"></div>
+    <div class="correct-ans" id="correct-ans"></div>
+    <div class="explanation" id="explanation-text"></div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">次の問題へ →</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="screen-result" class="screen">
+  <div class="result-summary">
+    <div class="big-score" id="big-score"></div>
+    <div class="score-sub" id="score-sub"></div>
+    <div class="grade-badge" id="grade-badge"></div>
+  </div>
+  <div class="cat-results" id="cat-results"></div>
+  <div class="weak-list-section" id="weak-list-section">
+    <h3>❌ 今回誤答した問題</h3>
+    <div id="wrong-list"></div>
+  </div>
+  <div class="result-actions">
+    <button class="btn-secondary" onclick="showScreen('home')">🏠 ホームへ</button>
+    <button class="btn-primary" onclick="startQuiz()">🔄 もう一度</button>
+  </div>
+</div>
+
+<!-- STATS SCREEN -->
+<div id="screen-stats" class="screen">
+  <div class="stats-section">
+    <h3>📊 累計成績</h3>
+    <div id="stats-total-content"></div>
+  </div>
+  <div class="stats-section">
+    <h3>📂 カテゴリ別正答率</h3>
+    <div id="stats-cat-content"></div>
+  </div>
+  <div class="stats-section">
+    <h3>🔁 苦手問題（誤答履歴）</h3>
+    <div id="stats-weak-content"></div>
+  </div>
+  <div style="margin-top:14px;display:flex;gap:10px">
+    <button class="btn-primary" style="flex:1" onclick="showScreen('home')">← ホームへ戻る</button>
+    <button class="btn-secondary" style="flex:1" onclick="syncFromSheets()">☁ Sheetsから読み込み</button>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div id="screen-settings" class="screen">
+  <div class="steps-card">
+    <h4>📋 Googleスプレッドシート連携 セットアップ手順</h4>
+    <div class="step-item"><div class="step-num">1</div><div>Googleスプレッドシートを新規作成し、<strong>「拡張機能」→「Apps Script」</strong>を開く</div></div>
+    <div class="step-item"><div class="step-num">2</div><div>一緒に提供している <code>PMP_AppsScript.gs</code> の内容をすべて貼り付けて保存</div></div>
+    <div class="step-item"><div class="step-num">3</div><div><strong>「デプロイ」→「新しいデプロイ」</strong>→ 種類は「ウェブアプリ」、アクセスできるユーザーを「全員」に設定してデプロイ</div></div>
+    <div class="step-item"><div class="step-num">4</div><div>表示された<strong>ウェブアプリのURL</strong>をコピーして下のフォームに貼り付ける</div></div>
+  </div>
+
+  <div class="settings-card">
+    <h3>⚙ Apps Script URL設定</h3>
+    <p>デプロイしたGoogle Apps ScriptのURLを入力してください。入力後、接続テストを実行してください。</p>
+    <div class="setting-row">
+      <label>Apps Script URL</label>
+      <input type="url" id="gas-url" placeholder="https://script.google.com/macros/s/..." oninput="onGasUrlInput()">
+      <div class="hint">※ デプロイ後に発行されるウェブアプリのURLを貼り付けてください</div>
+    </div>
+    <button class="test-btn" onclick="testConnection()">🔗 接続テスト</button>
+    <div class="test-result" id="test-result"></div>
+  </div>
+
+  <div class="settings-card">
+    <h3>🔄 データ操作</h3>
+    <p>ローカルのデータとGoogleスプレッドシートのデータを手動で同期できます。</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="test-btn" onclick="syncToSheets(true)">↑ Sheetsへ送信</button>
+      <button class="test-btn" style="background:#0277bd" onclick="syncFromSheets(true)">↓ Sheetsから取得</button>
+      <button class="test-btn" style="background:#c62828" onclick="resetAll()">🗑 全データリセット</button>
+    </div>
+  </div>
+
+  <div style="margin-top:14px">
+    <button class="btn-primary" style="width:100%" onclick="saveSettings()">✅ 設定を保存してホームへ</button>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const ALL_QUESTIONS = [{"id": 1, "q": "あなたは、予算内に収めるために、プロジェクトチームの経験豊富なメンバーにプロジェクトマネジメント業務を支援してもらうことにしています。あなたはプロジェクトマネジメント知識エリアのうち、主にどこで、経験豊富なメンバーから、プロジェクトの推進に必要な知識と経験を得るべきですか？", "choices": ["A. プロジェクトチームへの権限委譲", "B. プロジェクトマネジメント・オフィス (PMO)", "C. 経験豊富なメンバーにプロジェクトマネジメントの権限を委譲", "D. 組織プロセス資産"], "correct": "B", "explanation": "コミュニケーションのムダを省くという意味で、不要ならば削除し、ステークホルダーとの直接会話を可能にする。", "category": "ビジネス環境"}, {"id": 2, "q": "プロジェクトの推進方法が原因で、メンバーと製品開発の経験を積んだ外部コンサルタントの間でコンフリクトが発生しています。外部コンサルタントはウォーターフォールでの知識は豊富ですが、アジャイルでの知識と経験はほとんどありません。プロジェクトマネージャであるあなたは、外部コンサルタントにアジャイルでの経験を積ませたいと考えています。この場合、どのような行動を取るべきですか？", "choices": ["A. 人事部門と連携して、その人を別のプロジェクトに異動させるか、契約を解除する。", "B. その人と面談機会を明確にスケジュールして、あらかじめアジャイル計画と経験のレベルを調整する。", "C. プロジェクトの推進プロセスを調整し、経験豊富なメンバーから、アジャイルに関する知識を共有してもらうためのメンターとアサインする。", "D. 外部コンサルタントに、アジャイルのトレーニングを提供する。"], "correct": "B", "explanation": "まずは、業務担当での責任者であるプロジェクト・マネジャーが本人と直接話して、お互いに理解し合うことが重要である。", "category": "人"}, {"id": 3, "q": "プロジェクトは、予期せぬ制約と、ビジネス要件変更により、プロジェクトチームに新しいメンバーが加わることになりました。あなたは、この新しいメンバーにタスクの割り当てとプロジェクトの進捗報告をしてもらおうと考えています。新しいメンバーは、このプロジェクトのコミュニケーションに慣れるために、どのような行動を取るべきですか？", "choices": ["A. プロジェクトのメンバーと個別で面談を実施する。", "B. メンバー全員に、プロジェクトマネジメント・オフィス（PMO）が提供する、組織のコミュニケーション標準を共有する。", "C. プロジェクトマネジメント計画を配布し、プロジェクトの進捗状況をメンバー間で議論する。", "D. プロジェクトマネジメント・オフィス（PMO）と連携して、コミュニケーション計画を準備する。"], "correct": "A", "explanation": "20か月を14か月に30%も短縮できるほどのツールや技法はない。ステークホルダーと、スケジュールとスコープとのトレードオフについて話し合うことが現実的である。", "category": "プロセス"}, {"id": 4, "q": "あなたは、プロジェクトチームのリーダーに任命されました。プロジェクトチームは、プロジェクトを遂行するために必要な権限を与えられています。しかし、チームのメンバーは、仕事の遂行に積極的に取り組みません。プロジェクトマネージャであるあなたは、チームのモチベーションを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限を与える。", "B. チームメンバーの役割と責任を明確にする。", "C. メンバーに、仕事の遂行に必要な情報を提供する。", "D. メンバーに、仕事の遂行に必要な知識とスキルを提供する。"], "correct": "A", "explanation": "両チームと会って解決方法を探す。見つからない場合にはプロダクト・オーナーに相談する。B：スプリント・バックログの優先順位をプロダクト・オーナーが付け直すことはない。C：課題解決のためにメンバーを増やしても余計に時間がかかり、スプリントの長さを伸ばしても一方のチームが待っていることに変わりはない。D：この問題は2つのチーム間の協力について尋ねている。", "category": "人"}, {"id": 5, "q": "あなたは、プロジェクトのステークホルダーであり、プロジェクトのスコープの範囲外の活動をしています。あなたは、このプロジェクトの範囲外の活動を中止するように、プロジェクトマネージャから求められました。この場合、どのような行動を取るべきですか？", "choices": ["A. スポンサーにエスカレーションする。", "B. 組織のプロセスと手順を確立する。", "C. ステークホルダーがプロジェクトの範囲外の活動を続けるように、プロジェクトマネージャに要求する。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "まずは原因や理由を把握し理解することが重要である。", "category": "プロセス"}, {"id": 6, "q": "プロジェクトの途中まで、チームメンバーのパフォーマンスは高く、プロジェクトのスケジュールは遅れていました。プロジェクトマネージャは、チームのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、プロジェクトのスケジュールとパフォーマンスを共有する。", "B. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。", "C. メンバーに、仕事の遂行に必要な情報を提供する。", "D. メンバーに、仕事の遂行に必要な権限と責任を与える。"], "correct": "B, C", "explanation": "人事異動については反対できないので、他のチームメンバーの士気を高めるような対策と同時に、異動する要員と同級のスキルを持つ要員を獲得するように努力する。", "category": "人"}, {"id": 7, "q": "プロジェクトマネージャは、プロジェクトのコミュニケーションを改善するために、チームメンバーと協力して、コミュニケーション計画を改善しました。あなたは、この新しいコミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを確認したいと考えています。この場合、どのような行動を取るべきですか？", "choices": ["A. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、プロジェクトのステークホルダーと共同で確認する。", "B. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、チームメンバーと共同で確認する。", "C. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、プロジェクトのステークホルダーとチームメンバーと共同で確認する。", "D. プロジェクトマネージャが、コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを確認する。"], "correct": "D", "explanation": "会議は予定通りに進めたうえで、全体で話し合う必要がない内容ならば個別に対処する。", "category": "人"}, {"id": 8, "q": "プロジェクトマネージャは、プロジェクトのステークホルダーから、新しい要求を受け入れました。プロジェクトマネージャは、この新しい要求が、プロジェクトのスケジュールと予算に影響を与える可能性があることを認識しています。プロジェクトマネージャは、この新しい要求が、プロジェクトの成功に影響を与えないようにするために、どのような行動を取るべきですか？", "choices": ["A. 新しい要求を、プロジェクトのステークホルダーと議論する。", "B. 新しい要求を、プロジェクトのステークホルダーと共同で評価する。", "C. 新しい要求を、プロジェクトのステークホルダーと共同で評価し、プロジェクトのスケジュールと予算への影響を評価する。", "D. 新しい要求を、プロジェクトのステークホルダーと共同で評価し、プロジェクトのスケジュールと予算への影響を評価し、プロジェクトマネージャが承認する。"], "correct": "D", "explanation": "明日のイテレーション・レビューに間に合うかどうかを判断し、最善策をとるようにチームに伝えるが、無理はしないようにとも伝える。さらなる原因分析と対応はイテレーション・レビュー後のレトロスペクティブで検討する。", "category": "プロセス"}, {"id": 9, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "D", "explanation": "アジャイル・トレーニングを受けていないと仕事にならないので、該当メンバーにとって適格なトレーニングを実施する。", "category": "人"}, {"id": 10, "q": "あなたは、経験豊富なチームから成るプロジェクトを担当しており、デリバリーサイクル中の品質の維持が課題である。チームは、プロジェクトマネジメントの知識は豊富だが、新しいデリバリー手法について議論する時間がない。あなたは、このプロジェクトのデリバリー手法が、プロジェクトの品質目標を達成するために役立つことを確認したいと考えています。この場合、どのような行動を取るべきですか？", "choices": ["A. チーム全員に新しいスキルと知識を教える。", "B. チームメンバーと、プロジェクトの品質標準について話し合い、変更があれば適用する。", "C. チームメンバーと、プロジェクトの品質標準について話し合い、変更があれば適用し、チームメンバーに新しいスキルと知識を教える。", "D. チームメンバーに、新しいデリバリー手法でのトレーニング・セッションを提供し、知識とスキルを共有してもらう。"], "correct": "D", "explanation": "スタンドアップ・ミーティングはタイムボックス化して短時間で終了し、課題対応のための会議は別途開催する。", "category": "人"}, {"id": 11, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "C", "explanation": "デモは、成果物への評価のために行う。不満があればその時点でフィードバックする必要がある。なければチームは受け入れられたものと考える。", "category": "人"}, {"id": 12, "q": "あなたは、経験豊富なチームから成るプロジェクトを担当しており、デリバリーサイクル中の品質の維持が課題である。チームは、プロジェクトマネジメントの知識は豊富だが、新しいデリバリー手法について議論する時間がない。あなたは、このプロジェクトのデリバリー手法が、プロジェクトの品質目標を達成するために役立つことを確認したいと考えています。この場合、どのような行動を取るべきですか？", "choices": ["A. チーム全員に新しいスキルと知識を教える。", "B. チームメンバーと、プロジェクトの品質標準について話し合い、変更があれば適用する。", "C. チームメンバーと、プロジェクトの品質標準について話し合い、変更があれば適用し、チームメンバーに新しいスキルと知識を教える。", "D. チームメンバーに、新しいデリバリー手法でのトレーニング・セッションを提供し、知識とスキルを共有してもらう。"], "correct": "D", "explanation": "成功しているチームはおそらくチームワークも良いはずなので、できるだけ既存のメンバーのスキルアップにより対応する。", "category": "人"}, {"id": 13, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "A", "explanation": "この問題では、オーバーヘッド分の扱いとパラメトリック見積りがキーポイントになっている。それに触れているのはAのみである。", "category": "人"}, {"id": 14, "q": "ウォーターフォール型プロジェクトが進行しているとき、プロダクトオーナーと顧客が設計書にない要件を議論しました。プロジェクトマネージャは、この議論がプロジェクトのスコープ外であることを指摘し、設計書の承認を得るよう要求しました。この要求に従うべきですか？", "choices": ["A. プロダクトオーナーと顧客の要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "すぐにでも会議を開催して状況を確認したいところだが、その前に規制などの法的要求事項について十分理解しておかなければならないので、専門家に相談する。", "category": "プロセス"}, {"id": 15, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "なるべく自己組織型のチームにしたいので、自分たちで行動規範を作成して自律的に活動できるようにする。", "category": "プロセス"}, {"id": 16, "q": "プロジェクトマネージャは、現在のリリース計画の承認を受けました。チームメンバーは、リリース計画の承認を受けているが、新しい計画でタスクをスケジュールする必要があると考えています。プロジェクトマネージャは、どのような行動を取るべきですか？", "choices": ["A. チームメンバーに、現在のリリース計画の承認を受けていることを説明する。", "B. チームメンバーに、新しい計画でタスクをスケジュールする権限を与える。", "C. チームメンバーと、新しい計画でタスクをスケジュールする必要性について議論する。", "D. チームメンバーに、新しい計画でタスクをスケジュールする権限を与えることを承認する。"], "correct": "B", "explanation": "リリース計画とは、適応型の用語である。まずMVP（Minimum Viable Product）やMMF（Minimum Marketable Feature）を作成してリリースし、その後必要なビジネス価値を漸増できるように増分(MBI：Minimum Business Increment)を作成する。", "category": "人"}, {"id": 17, "q": "あなたは、プロジェクトの実行段階で、プロジェクトマネージャに任命されました。プロジェクトは、予算内で、期日までに完了することが期待されています。あなたは、プロジェクトの成功を確実にするために、どのような行動を取るべきですか？", "choices": ["A. プロジェクトのステークホルダーと、プロジェクトの目標と成果物について話し合う。", "B. プロジェクトのスケジュールと予算を、プロジェクトのステークホルダーと共同で評価する。", "C. プロジェクトのスケジュールと予算を、プロジェクトのステークホルダーと共同で評価し、プロジェクトの成功を確実にするために必要な変更を行う。", "D. プロジェクトのスケジュールと予算を、プロジェクトのステークホルダーと共同で評価し、プロジェクトの成功を確実にするために必要な変更を行うことを承認する。"], "correct": "C", "explanation": "より良い資源（要員）を獲得するための交渉を行う。内部になかったら外部に発注することもある。", "category": "プロセス"}, {"id": 18, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "本人と直接会い、その人の強みを中心に、それを活かせる領域について話し合う。", "category": "プロセス"}, {"id": 19, "q": "プロジェクトマネージャは、プロジェクトのコミュニケーションを改善するために、チームメンバーと協力して、コミュニケーション計画を改善しました。あなたは、この新しいコミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを確認したいと考えています。この場合、どのような行動を取るべきですか？", "choices": ["A. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、プロジェクトのステークホルダーと共同で確認する。", "B. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、チームメンバーと共同で確認する。", "C. コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを、プロジェクトのステークホルダーとチームメンバーと共同で確認する。", "D. プロジェクトマネージャが、コミュニケーション計画が、プロジェクトのコミュニケーションを改善するために役立つことを確認する。"], "correct": "D", "explanation": "プロダクト・オーナーは成果物を評価する責任があるので、レビュー後のレトロスペクティブに参加してもらい、具体的な意見を聞くことが大切である。", "category": "人"}, {"id": 20, "q": "あなたは、プロジェクトのスコープの範囲外の活動をしているステークホルダーであり、プロジェクトマネージャから、この活動を中止するように求められました。この場合、どのような行動を取るべきですか？", "choices": ["A. スポンサーにエスカレーションする。", "B. 組織のプロセスと手順を確立する。", "C. ステークホルダーがプロジェクトの範囲外の活動を続けるように、プロジェクトマネージャに要求する。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "スコープ外の要求であっても、それが顧客の事業面におけるのであれば追加する価値がありそうだ。そのためには、スコープ外なので、CCBや組織の上層部の意思決定が必要である。", "category": "プロセス"}, {"id": 21, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "技術的アプローチをよく知っているのがチームであり、使うのもチームである。したがってチーム自身の意思決定が最も最適である。", "category": "プロセス"}, {"id": 22, "q": "あなたは、プロジェクトのステークホルダーから、新しい要求を受け入れました。プロジェクトマネージャは、この新しい要求が、プロジェクトのスケジュールと予算に影響を与える可能性があることを認識しています。プロジェクトマネージャは、この新しい要求が、プロジェクトの成功に影響を与えないようにするために、どのような行動を取るべきですか？", "choices": ["A. 新しい要求を、プロジェクトのステークホルダーと議論する。", "B. 新しい要求を、プロジェクトのステークホルダーと共同で評価する。", "C. 新しい要求を、プロジェクトのステークホルダーと共同で評価し、プロジェクトのスケジュールと予算への影響を評価する。", "D. 新しい要求を、プロジェクトのステークホルダーと共同で評価し、プロジェクトのスケジュールと予算への影響を評価し、プロジェクトマネージャが承認する。"], "correct": "A", "explanation": "イテレーションが3回目ということは計画はかなり前に済んでいたにもかかわらず、そのとき使用していたテンプレートの更新がを忘れたと解釈できる。この更新は実際の作業には影響がないので、チームメンバーに割り当てることはない。サーバント・リーダーシップを発揮すべきである。", "category": "プロセス"}, {"id": 23, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "かなり難しい会議になっていると解釈できる。そこでプロジェクト・マネジャーは拒否しているステークホルダーの本音を理解し、納得できるような答えを探すための方法を共に考えだすことが重要である。BやDはそのための手法であり、Cの中で考えることである。Anoようにプロジェクト・マネージャーの権限を変更しても、顧客の受け入れには直接的な影響は与えない", "category": "プロセス"}, {"id": 24, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "B, C", "explanation": "さまざまな特徴を持つ多数のステークホルダーの関与について、エンゲージメント計画を策定するための分析を行うときに使われ、ツールと技法に位置付けられる。優先順位付けには『権力と関心度のグリッド』がよく使われるし、『セイリエンス・モデル』は『突出モデル』とも呼ばれ、ステークホルダーの力関係などの特徴について分類する手法である。", "category": "人"}, {"id": 25, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "噂であっても懸念事項になるのではっきりさせなければならない。そのためには本人のスキルを評価して、プロジェクトへの貢献を評価することが求められる。", "category": "人"}, {"id": 26, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "B", "explanation": "コンプライアンスに関する問題である。データ・セキュリティ・ポリシー遵守のためには、常にその状況を監視し、違反に対処することが必要である。", "category": "人"}, {"id": 27, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "D", "explanation": "最初に当人との会話が必要で、その内容に基づく対応として、A、B、Cが考えられる。", "category": "人"}, {"id": 28, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "プロジェクト・スコープ（作業範囲）逸脱のための手法が問われている。機能と関係を持つ場合は、なるべく早期段階で整理する。そのためには反復型のアプローチが適している。", "category": "プロセス"}, {"id": 29, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "A", "explanation": "スコープ変動の原因は見出されたセキュリティ・ポリシーのためであり、遅延はそのために発生している。それを改善するためのアジャイルアプローチが提案されているので、それに優先順位をつけて保守のイテレーションで実行する。", "category": "プロセス"}, {"id": 30, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "アジャイルの場合はプロジェクト開始時点で終了条件を決め付けますが、基本的には顧客理由による終了である。A、Cは計画駆動型特徴であり、Dは一般に終了条件にならない。", "category": "プロセス"}, {"id": 31, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "アジャイル型プロジェクトで過去の振り返りを行い、以後のイテレーションについて改善を考慮するタイミングは、イテレーションごとのレトロスペクティブである。", "category": "人"}, {"id": 32, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "A", "explanation": "プロジェクトは立ち上がったばかりで計画書や業務はできていない。この時点では、コンプライアンスへの要求事項を考慮して、プロジェクト憲章を書き換えるための提案を行う。", "category": "プロセス"}, {"id": 33, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "C", "explanation": "お互いの理解を深めるためには、速やかに直接話し合うことが重要である。", "category": "人"}, {"id": 34, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "アジャイルでは、ストーリーポイントとタスクの所要期間を、チーム自身が見積もって完成をコミットすることを期待している。そのためにはチームの個別のスキルが必要である。イテレーションを実施する指導役のスキルレベルを分析し、次のイテレーションではストーリーポイントの再設定を求める。A、C、Dによる主従間の効果は期待できない。", "category": "プロセス"}, {"id": 35, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "1つのイテレーションの中でのタスク間の依存関係をもっと小さくしないと、その場合はイテレーションを短くしていけば増えることになる。", "category": "プロセス"}, {"id": 36, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "D", "explanation": "専門知識の不足に対処する場合は、最初に他のプロジェクトで経験を持った要員の確保に努める。それでもだめなら外注を検討する。スポンサーへ要求することではない。プロジェクト・マネジャーの仕事である。", "category": "人"}, {"id": 37, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "C", "explanation": "あくまで契約に基づくことなので、契約に至っている要求マネジメント計画を確認し、それに沿って行動する。話し合いの結果、合意することも拒否することもある。", "category": "人"}, {"id": 38, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "A1, B4, C3, D5, E2", "explanation": "試験の画面上でドラッグ＆ドロップにて、マッチングさせる問題である。コンフリクトのほかにもリスク対策、ダックマン・モデル、マズローの5段階欲求説など10個近いマッチング問題がある。1項目間違えただけでも得点にはならない。", "category": "人"}, {"id": 39, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "遅れる可能性なので、現在のイテレーション内のバックログの優先順位を付け直して、該当タスクを早めるようにする。そのためにはプロダクト・オーナーの協力が必要である。", "category": "プロセス"}, {"id": 40, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "不満の内容を理解し、レビューの後のレトロスペクティブで議論に対処する。", "category": "プロセス"}, {"id": 41, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "まず会議を進めてから緊急事項について個別に話し合う。ただしその事項が会議の目的と合致しているのならば、その会議の中で全員で話し合うことになる。", "category": "人"}, {"id": 42, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "C", "explanation": "チームメンバーの話だけでなく、顧客マネジャーに確認する必要がある。", "category": "人"}, {"id": 43, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "A", "explanation": "ハイレベルのスコープはプロジェクト憲章への記載内容である。また、それに基づいたハイレベルのリスクも記載する。プロジェクト憲章を作成することは、専門家の判断を得るために有識者懇談などと関係する。", "category": "プロセス"}, {"id": 44, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "C", "explanation": "チームは成立期にあり、急には遂行期はなれない。コミュニケーションも満足ではなく、お互いの役割も理解していない可能性がある。チームは崩壊的である。サーバント・リーダーシップは、遂行期にならないと効果的ではない。", "category": "プロセス"}, {"id": 45, "q": "プロジェクトマネージャは、チームメンバーのパフォーマンスを向上させるために、どのような行動を取るべきですか？", "choices": ["A. メンバーに、仕事の遂行に必要な権限と責任を与える。", "B. メンバーに、仕事の遂行に必要な情報を提供する。", "C. メンバーに、仕事の遂行に必要な知識とスキルを提供する。", "D. メンバーに、プロジェクトの目標と、それらに基づく報酬を与える。"], "correct": "B", "explanation": "チーム編成はそのスキルを獲得するように行う。", "category": "人"}, {"id": 46, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "B", "explanation": "本人と直接話し合うことが大切である。", "category": "人"}, {"id": 47, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "A", "explanation": "SPI=EV/PV、CPI=EV/ACから求める。PV=100,000×0.8=80,000、EV=総予算×進捗率=100,000×0.7=70,000、SPI=70,000/80,000=0.88、CPI=70,000/75,000=0.93。", "category": "プロセス"}, {"id": 48, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "D", "explanation": "次のバージョン・リリースの完全なスコープ定義ができているので、そのまま進む。新しいフィーチャー要求は、その次のリリースへ反映させるための検討要素である。", "category": "プロセス"}, {"id": 49, "q": "あなたは、プロジェクトのステークホルダーから、プロジェクトのスコープの範囲外の活動を中止するように求められました。プロジェクトマネージャは、この要求に従うべきですか？", "choices": ["A. ステークホルダーの要求に従う。", "B. プロジェクトマネージャの要求に従う。", "C. プロジェクトマネージャの要求に従う。", "D. プロジェクトマネージャの要求に従う。"], "correct": "B", "explanation": "SPIとCPIを算出して判断する。SPI=EV/PV=540,000/630,000=0.86 → スケジュール遅れ。CPI=EV/AC=540,000/650,000=0.83 → コスト超過。", "category": "プロセス"}, {"id": 50, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "立上げの前段階の作業であり、これはプロジェクト憲章作成のインプット情報である。", "category": "人"}, {"id": 51, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "スコープ・クリープを防ぐために、すべての変更が正式な変更管理プロセスを通るように徹底する。", "category": "人"}, {"id": 52, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "変更にかぎらず、コミュニケーション・アプローチへの不満を解消するためには、まずコミュニケーション・マネジメント計画とステークホルダー・エンゲージメント計画を確認する必要がある。", "category": "人"}, {"id": 53, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "すぐにでも変更したいところであるが、まずは正式な変更管理プロセスに従う。", "category": "人"}, {"id": 54, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "その変更が必要だとわかっていたとしても、必ず変更管理プロセスに従わなければならない。", "category": "人"}, {"id": 55, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "プロジェクト終結後の活動は、プロジェクト活動の一部ではないので、まずは手続きを完了してプロジェクトを終了することが重要である。", "category": "人"}, {"id": 56, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "プロジェクトマネジメント計画はプロジェクト・ベースラインなので、しっかりとレビューしてもらう必要がある。そのためには対面が最良である。", "category": "人"}, {"id": 57, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "C", "explanation": "動乱期を経て、効果的なコミュニケーションが始まった段階は、安定期である。", "category": "人"}, {"id": 58, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "未完了のタスクが発生したら、そのイテレーションのレトロスペクティブにおいて課題を検討して改善を行う。", "category": "人"}, {"id": 59, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "C", "explanation": "他のパラメーターが提示されていないので、発生確率と影響の積でリスク・スコアを求めて、大きい順にランク付けする。", "category": "人"}, {"id": 60, "q": "あなたは、プロジェクトの品質目標を達成するために、チームメンバーに、プロジェクトの品質標準と、それらを達成するために必要なツールを提供する。この場合、チームメンバーに提供する品質標準とツールは、どのようなものですか？", "choices": ["A. 品質標準", "B. ツール", "C. 品質標準とツール", "D. 品質標準とツールとトレーニング"], "correct": "A", "explanation": "メンバー同士の理解を深め、相互尊重を含むためには、相手の文化的背景や考え方を認識する必要がある。", "category": "人"}, {"id": 61, "q": "あるプロジェクトで特定された3つの重大なリスクに対処するための対策を実行する必要がありますが、これらのリスクに対処するには、特定の3名の要員が必要です。ただし、彼らはすでに重要な成果物を含む別のプロジェクトに参加しています。プロジェクト・マネジャーはどのような行動を取るべきですか？", "choices": ["A. 潜在的なスケジュールの遅延を解決するために予備費を使い、考えられる影響を識別する。", "B. 他部門の要員を雇って、タスクを処理するために割り当てる。", "C. リスクを受容し、潜在的な影響を受けるために、これらのリスクを継続して監視する。", "D. 特定の要員の可用性について機能マネジャーと確認する。"], "correct": "D", "explanation": "リスク対策には、その3名が必要であるとの前提にたてば、その要員の可用性については機能マネジャーに問い合わせる必要がある。そして、一緒になってその骨格を早く獲得するための手段を考慮する。外部資源の検討はその後にする。", "category": "プロセス"}, {"id": 62, "q": "プロジェクト・マネジャーは、プロジェクト遅れの原因がプロジェクト要員の専門知識不足であると判断しました。具体的には、上級レベルの要員の可用性が制限されていることを特定しました。プロジェクト・マネジャーは、チームのパフォーマンスを向上させるために、どのアクションを実行するのが適切ですか？", "choices": ["A. すべてのチームメンバーのスキル・チェックリストを作成しギャップ分析を実行する。", "B. 必要に応じたトレーニングを実施する。", "C. 上級レベルの要員が後輩の要員を支援するように指示する。", "D. ジュニアレベルのスタッフ向けのトレーニングを実施する。"], "correct": "A", "explanation": "選択肢だけでは不足な面があるが、まずはAのアクションから始める。", "category": "人"}, {"id": 63, "q": "クラッシングが必要になったため、進行中のプロジェクトに複数の新しいメンバーが追加されることになりました。元のチームメンバーには強固な信頼関係と仲間意識があり、新しいメンバーは同様な基本的理解をしていません。この理解の欠如を軽減するために、プロジェクト・マネジャーはこの問題にどのように対処する必要がありますか？", "choices": ["A. チーム編成をやり直し、新しい要員を他のプロジェクトに移す。", "B. 元のチームメンバーにサポートとトレーニングを提供するようお願いし、新しいチームメンバーのために2回目のキックオフ・ミーティングをスケジュールする。", "C. すべての新しいチームメンバーに、元のメンバーとプロジェクト・マネジャーの両方に安心して支援を求められることを保証する。", "D. これはチームが変化を経験するときによくあることであると認識し、生産性のわずかな低下を考慮してスケジュールを修正する。"], "correct": "B", "explanation": "トレーニングが頻繁で、さらに意識合わせのためにキックオフ・ミーティングも効果がある。", "category": "人"}, {"id": 64, "q": "プロジェクトの規模が大幅に拡大したため、プロジェクトで人たちがスポンサーは運営委員会に置き換えられました。プロジェクト・マネジャーはどのように取り組むべきですか？", "choices": ["A. ステークホルダー・グループに運営委員会のメンバーが含まれたことを踏まえて、最初のプロジェクト計画に従う。", "B. 最初のプロジェクト計画に従いながら、新しい運営委員会とチームとの討議をスケジュールする。", "C. 新しい運営委員会のメンバーがプロジェクトの現在のステータスに十分満足していることを確認する。", "D. ステークホルダーの構造に変化があったことを認識し、新しい運営委員会とのコミュニケーションについてテーラリングする。"], "correct": "D", "explanation": "最初に、コミュニケーション・マネジメント計画やエンゲージメント計画の更新が必要である。", "category": "プロセス"}, {"id": 65, "q": "リスク特定の結果、プロジェクトの相関関係に影響を及ぼすものやプロジェクト全体に影響を及ぼすものがあることがわかりました。これらを類似にマネジメントするための文書は次のうちどれですか？", "choices": ["A. リスク登録簿とリスク報告書", "B. リスク登録簿と組織のプロセス資産", "C. リスク・マネジメント計画書とリスク報告書", "D. 組織のプロセス資産とリスク報告書"], "correct": "A", "explanation": "リスク・マネジメントでは、個別リスクのマネジメントにはリスク登録簿、全体リスクのマネジメントにはリスク報告書を使用する。", "category": "プロセス"}, {"id": 66, "q": "プロジェクト・マネジャーは、キックオフの1週間前に、技術的に優れたコンサルタントを雇い、このプロジェクトの成果物がとても複雑であることが懸念事項となっています。その要員は成果物についての懸念を申し立てます。懸念事項を判断するために、プロジェクト・マネジャーは何をすべきですか？", "choices": ["A. その要員の懸念事項についてスポンサーと話し合い、プロジェクト計画を変更する。", "B. 実現可能性検討を実行してから、結果を評価する。", "C. 懸念事項を課題ログの懸念事項に追加する。", "D. リスク評価を実施して、脅威と予防処置を特定する。"], "correct": "B", "explanation": "成果物が現実的かどうかを判定するためには、類同見積りを行う。", "category": "プロセス"}, {"id": 67, "q": "ユーザーテスト中に、顧客は最終プロダクトに同意しましたが、複数の追加要求の合意を再検討しています。プロジェクト・マネジャーは何をすべきですか？", "choices": ["A. プロジェクトの品質マネジメント計画を更新する。", "B. 要求事項文書を確認する。", "C. プロジェクトの要求事項を確認する。", "D. プロジェクトのプロジェクト憲章を参照する。"], "correct": "C", "explanation": "クライアントが何を危惧しているのかを理解するためには受入基準を確認する。", "category": "プロセス"}, {"id": 68, "q": "プロジェクト・マネジャーは、計画外のイベントがプロジェクトの制約事項に影響を与える可能性があることを心配しています。一方スポンサーとプロジェクト・チームは、新しいプロジェクトには十分な予算と現実的なスケジュールがあると考えています。プロジェクト・マネジャーは最初に何をすべきですか？", "choices": ["A. プロジェクトの後半で追加のプロジェクト資金を要求する必要があることを認識し、計画通りにプロジェクトを実行する。", "B. プロジェクトの計画をカバーするために、プロジェクトのスポンサーに追加資金を要求する。", "C. 計画外のリスクの潜在的な影響に対処するために、継続マネジャーとの会議をスケジュールする。", "D. プロジェクトのリスクの特定に取り組み、それらのリスクを評価状態にする。"], "correct": "D", "explanation": "単にリスク・マネジメントの流れについての質問である。リスクを特定し、評価（分析）し、対応策を作成し、実施し、その対応を監視するという流れを覚えよう。", "category": "プロセス"}, {"id": 69, "q": "ある大規模なプロジェクトが完了間近なので、プロジェクト・マネジャーは報告書を作成しようとしています。そのプロジェクトには4か国にまたがるチームメンバーが含まれています。プロジェクト・マネジャーは、プロジェクトの最終報告書に含めるデータをどのように取得する必要がありますか？", "choices": ["A. 運営委員会（ステアリング・コミッティ）に確認を求める。", "B. プロジェクト・スポンサーにインプットを求める。", "C. 4か国の4人の機能部門マネジャーにインプットを依頼する。", "D. プロジェクト・マネジャーのビジネスユニットの役員に確認を求める。"], "correct": "B", "explanation": "プロジェクトの承認は、あくまでプロジェクト・スポンサーが行う。", "category": "人"}, {"id": 70, "q": "プロジェクト品質マネジメント計画に基づき品質活動が展開されています。その計画では、プロジェクトの成果物は、少なくとも開始後15週間にレビューする必要があると規定されています。ところが、4つの成果物はその品質基準を満たしていません。プロジェクト・マネジャーが取るべき適切なアクションは何ですか？", "choices": ["A. プロジェクトの実務慣行に準拠するように、品質マネジメント計画を変更する。", "B. プロジェクトに内部監査を受けるように要求する。", "C. プロジェクト・スポンサーに指示を求める。", "D. 根本原因分析のために特性要因図を使用する。"], "correct": "D", "explanation": "まず4つの成果物がなぜ品質要求を満たしていないのかを突き止める必要がある。", "category": "プロセス"}, {"id": 71, "q": "地域独占が特定のエネルギー効率の高いプロジェクトに補助金を給付しているようなので、ある会社は、ソーラーパネルを設置するプロジェクトを開始しました。プロジェクトの開始後、プロジェクト・マネジャーは、食品しようとしているソーラーパネルがエネルギー効率補助金の対象とならない可能性があることを知りました。プロジェクト・マネジャーはこの状況にどのように応答する必要がありますか？", "choices": ["A. プロジェクトのリスクレベルを上げる。", "B. プロジェクト・スポンサーに通知する。", "C. 毎日のディスカッション・セッションを使用して、チームの懸念事項を確認する。", "D. 正常に完了したタスクごとにチーム報酬を行います。"], "correct": "A", "explanation": "この状態は、リスクが特定されたことを表している。その発生確率が上昇したのでリスクレベルが上昇したとも言える。", "category": "プロセス"}, {"id": 72, "q": "あるプロジェクトでは、1つの成果物を3つに分け、3つのチームを設置します。3つの成果物は互いに大きく依存していますが、チームリーダーは他チームからのアウトプットを組み合わせることがコンフリクトを引き起こす可能性があることを懸念し、アドバイスを求めています。プロジェクト・マネジャーはどのようなアドバイスを行う必要がありますか？", "choices": ["A. どのチームの作業を優先するかを決定してから、他の2つのチームに成果物を合わせて、コンフリクトがないことを確認する。", "B. コンフリクトが発生したときにそれを文書化し、発生した課題を注意深く処理する。", "C. テスト段階でコンフリクトに対処できることを認識し、3つのチームが同時に動作を続行する。", "D. 潜在的なコンフリクトを特定し、3つのチームのメンバーとの通信経路を手配して、お互いの作業を理解する。"], "correct": "D", "explanation": "コンフリクトもリスク同様に必ず発生するものでは限らないが、事前に対策を考えておかなければならない。常に状況を監視し、コンフリクトの発生をなるべく防ぐように努め、発生したら3つのチームで素早く対応できるように準備する。", "category": "人"}, {"id": 73, "q": "いくつかのタスクの遅れに対処して、プロジェクト・マネジャーはその遅延を是正するために、後続のタスクの優先順位を付け直しました。しかし問題が起きてもプロジェクトが軌道に戻ることはなかったため、プロジェクト・マネジャーはその課題をプロジェクトのステークホルダーにエスカレーションすることを考えました。課題をエスカレートするには、プロジェクト・マネジャーは最初に何をすべきですか？", "choices": ["A. ステークホルダーのエンゲージメント計画を確認する。", "B. コミュニケーション・マネジメント計画を参照する。", "C. 変更マネジメント計画を参照する。", "D. リスク・マネジメント計画を確認する。"], "correct": "B", "explanation": "エスカレーションのための手続きは、コミュニケーション・マネジメント計画に記述されている。", "category": "プロセス"}, {"id": 74, "q": "顧客に提供された写真に基づいて、1,000個のプロダクトが開発されました。プロジェクト・チームは、品質計画に照らして評価を1,000個のプロダクトでランダムに選択しています。これはどの活動を意味していますか？", "choices": ["A. 課題のマネジメント", "B. プロセス監査", "C. 統計的サンプリング", "D. 品質保証"], "correct": "C", "explanation": "1,000個のうち100個をランダムに選ぶことは、サンプリング手法である。", "category": "プロセス"}, {"id": 75, "q": "顧客が、合意された品質仕様を満たしていないため、開発によって指定されたサービスレベル契約（SLA）を締結しました。チームメンバーは、ベンダー提供の製品に問題があるため、ベンダーに修正するよう求めました。ところが、ベンダーはその問題を修正しないと言っています。次のステップを決定する前に、プロジェクト・マネジャーは何をすべきですか？", "choices": ["A. ベンダーとの間で確立されたサービスレベル契約（SLA）を確認する。", "B. 調達マネジメント計画を確認し、学んだ教訓を文書化する。", "C. 品質保証レポートを確認する。", "D. 調達マネジメント計画と契約による合意内容を確認する。"], "correct": "D", "explanation": "ベンダーとの部品提供契約に関する問題である。", "category": "人"}, {"id": 76, "q": "プロジェクトは実行段階にありましたが複数の小規模なサプライヤーが別のプロジェクトに移動したので、プロジェクトは新しいサプライヤーの追加の要員サポートを受けることにしました。あなたは、プロジェクトで新しいサプライヤーを使用することのコスト上のリスクを思いつきました。プロジェクト・マネジャーとして過渡チームに対して、このリスクの性質とタイプを確立する必要があります。どの契約形態が該当していますか？", "choices": ["A. 固定価格インセンティブ・フィー（FPIF）契約", "B. タイム・アンド・マテリアル（T&M）契約", "C. コスト・プラス・インセンティブ料金（CPIF）契約", "D. 完全固定価格（FFP）契約"], "correct": "A", "explanation": "キーポイントは、追加資源のパフォーマンスを追跡しコスト・リスクである。コストのリスクだけを考えればDになるが、成果を出してもらいたいのならインセンティブを考慮したAがよい。", "category": "プロセス"}, {"id": 77, "q": "以前に特定された技術的な課題は解決され、プロジェクトは進んでいます。プロジェクト・マネジャーは、同じ問題が再利用後のプロダクトで発生する可能性があると警告されています。この警告をフォローするとき、最初に何をすべきですか？", "choices": ["A. 課題ログが更新されていることを確認する。", "B. リスク報告書を作成し、レポートを最新の状態に保つ。", "C. 警告についてプロジェクト・スポンサーに通知する。", "D. リスク登録簿が更新されていることを確認する。"], "correct": "A", "explanation": "課題なので、まず課題ログを確認し、その後対策を検討する。たとえば、次のように運営する。・リスクだった場合、リスク登録簿（個別リスク）かリスク報告書（全体リスク）へ記載。・課題の発生、あるいはリスクが課題に変わる場合には、課題ログへ記載。・課題やリスクから学ぶことは、教訓登録簿へ記載。・プロジェクトの終結で、リスク登録簿を組織リポジトリに保管する。", "category": "プロセス"}, {"id": 78, "q": "プロジェクト・マネジャーは、一人のメンバーがプロジェクト外の業務が増加し、リスクとなっています。プロジェクト・マネジャーはどのようにしてこのリスクに対応できますか？", "choices": ["A. そのメンバーに、その重要な仕事に集中するように伝えて、別の要員から追加の支援を獲得する。", "B. そのメンバーのマネジャーと会い、プロジェクトと別の時間帯でその仕事を実行できるようにする。", "C. スポンサーに報告する。", "D. カジュアルにされたプロジェクトが完了するまで、そのメンバーを担当から解放するようにメンバーのマネジャーに伝える。"], "correct": "B", "explanation": "プロジェクト外のタスクに従事しているということは、それを表示したマネジャーがいるはずである。つまりマトリックス型の形態である。その場合は、そのマネジャーとの話し合いで解決する。", "category": "人"}, {"id": 79, "q": "プロジェクト・マネジャーは、アジャイル・チームからデイリー・スクラムについて進捗レポートを受け取りました。そのレポートは、アジャイル・プロジェクトが順調に進んでいないことを示しています。そもそもすべての作業は、より高いレベルの目標を達成するために戦略的に選択され、順序付けられてます。このプロジェクト・マネジャーはこのレポートの内容についてどうすべきですか？", "choices": ["A. これらの課題を解決するための予備費があることを確認する。", "B. チームがアジャイルのレポーティング・システムを正しく使用するようにトレーニングされていることを確認する。", "C. プロジェクト・チームに、アジャイル・アプローチに関する早期のトレーニングを受けるメンタリングを提供する。", "D. プロジェクトがチームの目標に依拠することによって、次の段階を有効可能なようにする。"], "correct": "D", "explanation": "この問題は、状況把握や情報共有がうまくできていないことを示している。それを解決するためには自己組織化が最良の方法である。", "category": "プロセス"}, {"id": 80, "q": "プロジェクト・マネジャーは、チームメンバーの成果物を承認してから、別のチームメンバーの意見を横持ちする必要があります。この状況について、チームを支援するために役立つことは次のうちどれですか？", "choices": ["A. 自分の信念に基づきチームと正面から向き合い、オープンなコミュニケーションを促進する。", "B. プロジェクト・タスクを委任して、チームに構成させる。", "C. 毎日のディスカッション・セッションを使用して、チームの懸念事項を確認する。", "D. 正常に完了したタスクごとにチーム報酬を行います。"], "correct": "A", "explanation": "漠然とした問題が4択肢として提示。Aは、チームを正面から向き合い、明確に意思表示することを意味している。Bは、タスクを委任しているが、これは通常のマネジメントと同じである。Cは、考え方はいいが毎日のディスカッション・セッションは短時間であり現実的ではない。Dも現実的ではない。", "category": "人"}, {"id": 81, "q": "あなたが担当するプロジェクトは、シニア・プロジェクト・マネジャーに管理されている複数プロジェクトのひとつです。計画段階で、スポンサーはマネジメント計画の作成を急ぐように依頼されました。あなたはどのように対応すべきですか？", "choices": ["A. 要求事項を収集し、ベンチマークのサンプルを取得するために記録をスケジュールする。", "B. スポンサーから、必要なベンチマークのサンプルと費用曲線が提供される。", "C. 品質尺度と品質チェックリストが作成されたら、品質マネジメント計画を完成する。", "D. シニア・プロジェクト・マネジャーと会って、詳しい計画とプロジェクト憲章をレビューし、次に、適切な基準を選択するための支援を求める。"], "correct": "D", "explanation": "体制として、シニア・プロジェクト・マネジャーが直属上司になっている。したがって、最初に彼と会って計画を提示し確認してもらう必要がある。", "category": "プロセス"}, {"id": 82, "q": "あなたの担当するプロジェクトは終結段階に入りました。ところがユーザー受け入れテストで複数のユーザー・グループが不満を述べていて、彼らの期待が満たされていないと言っています。この課題を未然に防止するための行動は次のうちどれですか？", "choices": ["A. プロジェクトを通してリスク評価を継続する。", "B. コンフリクト・マネジメント手法を利用する。", "C. プロジェクトを通してステークホルダーのフィードバックを取得する。", "D. ユーザーとの良い関係を構築する。"], "correct": "C", "explanation": "プロジェクトの進捗中にはよくあることで、常にユーザの声に耳を傾ける必要がある。Dも良い手段であるが、これはフィードバックをスムーズに入手するための手段と言える。", "category": "人"}, {"id": 83, "q": "プロジェクト・チームは、異なるタイムゾーンに存在し、異なる場所で作業を実施しています。ところがプロジェクト・スポンサーは、この状況を考慮せず、かえって分散によってコストを節約できると理解していました。この状況を円滑にマネジメントするために、プロジェクト計画書やプロジェクト文書のどこに記載する必要がありますか？", "choices": ["A. ステークホルダー登録簿", "B. ハイレベルの要求事項としてプロジェクト憲章", "C. 全体リスクとしてリスク報告書", "D. 資源マネジメント計画書"], "correct": "C, D", "explanation": "スポンサーの考え自体をリスクと捉えている。したがって全体リスクとして、リスク・マネジメントの中でリスク報告に記述してマネジメントする。Aも必要だが対策がない。Bが最初に行われる対策だが、Dにはチームをマネジメントするための具体的な方法を説明する。", "category": "プロセス"}, {"id": 84, "q": "あなたのプロジェクトでは、法的な変更に基づき、政府機関は至急ステークホルダーになりました。あなたは、この新しいステークホルダーの理解を得るために何をすべきですか？", "choices": ["A. 新しいステークホルダーとの会議をスケジュールする。", "B. 前提条件ログを更新する。", "C. ステークホルダー・エンゲージメント計画を改訂する。", "D. ベネフィット・マネジメント計画を新しいステークホルダーと共有する。"], "correct": "A", "explanation": "まずは会って、その結果を分析し、エンゲージメント問題を解決する。", "category": "ビジネス環境"}, {"id": 85, "q": "あなたのプロジェクトでは、人事と給与を一元化してマネジメントする新しいシステムを開発します。あなたは、スポンサーである多国籍企業の既存プロジェクトのリスクについて、どれだけの懸念があります。これらの懸念について、あなたは何をすべきですか？", "choices": ["A. 定期的なリスク・レビューを行う。", "B. ハイレベルのプロジェクト・リスクを特定する。", "C. プロジェクトのリスクを計算して定量化する。", "D. リスク登録計画を策定する。"], "correct": "B", "explanation": "今はリスク特定の最中である。この分析し、対応策を立て、実施し、その結果をレビューする。", "category": "人"}, {"id": 86, "q": "あなたは、プロジェクトの成功のために重要な戦略的および運用上の優先条件を特定しようとしています。ところが懸念があり、ステークホルダーが不足しているため、一貫した情報を得るのが難しいと感じています。プロジェクト・マネジャーがステークホルダーの認識を高めるために最良の方法はどれですか？", "choices": ["A. 政治的認識のテクニックを活用する。", "B. リスク・マネジメントのツールと手法を確認する。", "C. 戦略的な会議マネジメント手法を採用する。", "D. 効果的なファシリテーション技法を使用する。"], "correct": "D", "explanation": "まずは会って話し合うことが重要だが、公式な会議というよりも非公式の方が認識の向上に役立つ。どちらにせよ本音を引き出すようにファシリテーションすることが大切である。Aは力関係を利用することなので、最悪と言えない。Bの手法は認識を高めるという課題には向かない。この場ではCかDで悩むと思うが、必ずしも会議を行うとは限っていないので、Cは組織をチームに進めるためのファシリテーション手法がよい。", "category": "プロセス"}, {"id": 87, "q": "あなたは、スケジュールに遅延をきたしている原因が、2人のチームメンバーに割り当てられた2つのタスクの大幅な遅れにあると認識しています。あなたはこの問題をどのように処理しますか？", "choices": ["A. 遅延を減らすためにプロジェクト・スポンサーに相談し、課題をエスカレーションする。", "B. 遅延の理由を次のステップの計画に仕立てる。", "C. そのチームメンバーと会ってタスク状況を確認して遅延を解消するための戦略を決定する。", "D. プロジェクト全体が危険にさらされないように、タスクを迅速に遅れた状態にするようにチームに指示する。"], "correct": "C", "explanation": "まずは会って、彼らに具体的な答えを出させるように仕向けるので、プロジェクト・マネジャーとしては分科（戦略）を決定する。", "category": "プロセス"}, {"id": 88, "q": "あなたの担当するプロジェクトは終結段階にありますが、少しだけ顧客要求を満たしていません。それは最終納品したプロジェクト成果物の一部について、チームが変更と関連のステークホルダーへ通知していなかったことに気がつきました。あなたは、この状況を再発させないために、その成果物がどこに記録されたか確認する必要があります。あなたはこのために使用する3つのドキュメントはどれですか？", "choices": ["A. 監査報告書、組織のプロセス資産更新、調達契約", "B. 調達契約、プロジェクト文書の更新、組織のプロセス資産更新", "C. 調達契約、ステークホルダー・エンゲージメント計画、組織のプロセス資産更新", "D. 最終報告書、プロジェクト文書の更新、組織のプロセス資産更新"], "correct": "D", "explanation": "納品された成果物の承認については受入れ審査を確認する。所得権の議論に関しては、受入れと同時に調達契約を示して納品者へ発行した契約書を確認する。これは、Dにあるとおりに周知している。誤選択肢は調達終結の方法を想定しているが、それが正しく実行されたかどうかまではわからない。", "category": "プロセス"}, {"id": 89, "q": "6つの異なる企業が関与するプロジェクトが進行中です。あるステークホルダーが病気に罹ってしまい、関与のレベルを下げることになってしまいました。プロジェクト・マネジャーは何をすべきですか？", "choices": ["A. プロジェクト憲章を改訂する。", "B. ステークホルダー・エンゲージメント計画を改訂する。", "C. ステークホルダー登録簿を改訂する。", "D. リスク・マネジメント計画を改訂する。"], "correct": "B", "explanation": "Aは不要。C、Dについては、該当する内容によっては対応するが、ここではそこまで表現されていない。それよりもステークホルダーの期待レベルが高いので、ステークホルダー・エンゲージメント計画を対応する必要がある。", "category": "プロセス"}, {"id": 90, "q": "プロジェクトが開発中の新製品に影響を与える新しい法律が制定されました。その内容に準じると3か月以内に開発を完了する必要があります。ところが、新製品は新しい法律の要求事項を満たしていません。プロジェクト・マネジャーは、この潜在的な課題にどのように対応する必要がありますか？", "choices": ["A. スポンサーと主要なステークホルダーとの会議をスケジュールして懸念して警告し、法律が完成するまで、プロジェクトを中止するように推奨する。", "B. スポンサーと主要なステークホルダーとの会議をスケジュールしてリスクについて話し合い、会議の結果から、前提条件ログとプロジェクト憲章について変更する。", "C. リスク・マネジメント計画を改訂し、プロジェクトの調整をする。", "D. 計画に沿ってプロジェクトを進める。新製品が法律変更の影響を受けないように、時間通りに完了するようにする。"], "correct": "B", "explanation": "リスクが特定されたので、その影響について関係するステークホルダーと話し合い、発生確率が高く、さまざまな領域に影響を及ぼすことが明確である。そこで制約条件をログに記述してプロジェクトマネジメント計画全体を見直す。", "category": "プロセス"}, {"id": 91, "q": "あなたは、リスクをマネジメントするために承認された重要変更を実行するよう指示されました。変更が実行されてから3か月後、あなたは、変更により望ましくないことが起こったことを知り、かつて脅威が生じたことにショックを受けました。将来のプロジェクトでこの課題を回避するために、あなたは何をすべきですか？", "choices": ["A. 新しいリスクを評価した後、発生確率と影響度のマトリックスを更新する。", "B. 学んだ教訓をリスク情報で更新する。", "C. 前提条件ログを確認した後、既存の前提条件を再検討または変更する。", "D. 教訓簿をレビューして、リスク対応策が期待通りに実行されたことを確認する。"], "correct": "D", "explanation": "まずは、策定したリスク対応策が確実に実行されていたのか、その対策は正しかったのか、監視は常に行われていたのかについて確認する必要がある。", "category": "プロセス"}, {"id": 92, "q": "あなたは、今後2週間以内に大きな組合活動の可能性があるという情報を入手しました。あなたは、この段階でのプロジェクトの進捗が予定スケジュールの半分に届くか決定する必要があります。しかし、組合活動の可能性は低いと考えられています。あなたはこの状況にどのように対応する必要がありますか？", "choices": ["A. 組合との話し合いを通じてより多くの情報を入手し、見つけたものを使用して次のステップを決定する。", "B. 組合活動に参加しない人に報酬を与え、参加する人に罰を課すことを計画する。", "C. 状況を解決するために、組合のリーダーとの会合をスケジュールする。", "D. 関連するステークホルダーに通知し、新しいリスクをリスク登録簿に追加する。"], "correct": "D", "explanation": "最初はリスクと認識していなかったのだから今は大きいリスクと認識されたということで、リスク登録簿に追記し関連ステークホルダーと分析を開始する。", "category": "人"}, {"id": 93, "q": "あなたは、チームが独自にセットアップしたコミュニケーション・ツールを使用していることを知りました。そもそもプロジェクト・マネジャーは公式コミュニケーションを強化するために非公式のオンライン・コミュニケーション・プラットフォームを構築したのでした。プロジェクト・マネジャーはどのような行動を取るべきですか？", "choices": ["A. 関係者を構成した後、コンプライアンス・オフィスに調査を依頼する。", "B. チームが勝手に設置したものなので、そのプラットフォームを停止する。", "C. コミュニケーション・マネジメント計画を確認して、プロジェクト・チームにプラットフォームの使用をやめてもらう。", "D. 管理者を兼任して、このプラットフォームでのコミュニケーションを監視する。"], "correct": "C", "explanation": "まずは、コミュニケーション・マネジメント計画に沿ったコミュニケーション手法に従ってもらう。その後、そのプラットフォームについて話し合う。", "category": "ビジネス環境"}, {"id": 94, "q": "あなたが担当するプロジェクトでは、まず作成するプロダクト検査方法の実現可能性検討が実施されました。その間、元の要求事項に対する検証を開始するための変更要求が承認されました。実現可能性検討のデータ分析を、変更要求が承認される前に実施されたにもかかわらず、あなたはどの行動を取るべきですか？", "choices": ["A. その新製品の実現可能性検討を依頼する。", "B. データ分析の詳細なレポートを要求する。", "C. 変更要求を拒否する。", "D. 変更要求を実行する。"], "correct": "D", "explanation": "公式な決定なので、最新の決定に従う。", "category": "プロセス"}, {"id": 95, "q": "あなたの担当する技術開発プロジェクトには、ローカルでは利用できない限度額を超える資源が必要です。あなたは、現場で作業できる要員を探しましたが、その要員は300kmに住んでおり、勤務時間が必要です。ところが勤務ビザの手続きに数か月の時間がかかっています。この状況であなたはプロジェクト・マネジャーとして何をすべきですか？", "choices": ["A. 既存のチームの人数を割り当てる。", "B. プロジェクトのスコープを縮小する。", "C. プロジェクトを構成の期間分延長する。", "D. 要員がリモートで補助するように要求する。"], "correct": "D", "explanation": "バーチャル・チーム構成とする。", "category": "プロセス"}, {"id": 96, "q": "あなたがプロジェクトで採用したベンダーは、要員に関する課題のために重要なプロジェクト成果物に遅れをとっています。しかし幸運にも予算には22%のバッファが残っています。あなたがこの課題を緩和するために最初にすべきことは何ですか？", "choices": ["A. 現在のベンダーを置き換えるために新しいベンダーに契約を締結するように依頼する。", "B. 契約の制約にもかかわらずプロジェクト成果物を支援できる代替ベンダーを検索する。", "C. 遅れの主な影響について、ベンダーと話し合う。", "D. 最初にコスト超過を受け入れた後、プロジェクト・スケジュールを更新する。"], "correct": "B", "explanation": "さまざまな解答が考えられる。Dは甘すぎる。Cは並行して行うことだが、要員の問題なので結局はベンダーを変えざるを得ないと考えると、Bと並行して検討することになる。BとCの順序を考えると、Cは紛争になりやすいので、Bを先に進めることになる。Aは早すぎる。", "category": "人"}, {"id": 97, "q": "ベンダーのチームメンバーとプロジェクト・チームメンバーの間にコンフリクトが発生し解決できていません。その課題はプロジェクト・マネジャーにエスカレーションされました。プロジェクト・マネジャーが最初にすべきことは何ですか？", "choices": ["A. 電話でベンダーに電話して、課題について話し合う。", "B. 契約書を作成し、ベンダーに送付する。", "C. 課題について話し合うためにベンダーに電子メールを送信する。", "D. ベンダーと直接会って、課題について話し合う。"], "correct": "D", "explanation": "まずは直接会う。", "category": "人"}, {"id": 98, "q": "プロジェクト・マネジャーは、プロジェクトのタイムリーな完了のために考慮する必要があります。たとえば成果物の受け入れ前の閲覧要員のトレーニングは、必須のプロジェクト成果物のひとつです。お客様の要員が受け入れトレーニングを完了していないような場合、プロジェクト・マネジャーは、次のうちどれを行いますか？", "choices": ["A. リスク登録簿を改訂し、次のプロジェクトステータス会議で話し合う。", "B. リスクに対処するために、プロジェクトのステークホルダーと協議する。", "C. リスクを軽減するために、引き続き実行役にサポートを維持する。", "D. トレーニングの遅れを考慮して、プロジェクトのスケジュールを変更する。"], "correct": "B", "explanation": "プロジェクト・スケジュールへのリスクと捉えるため、実行中のトレーニングの問題なので、全員する。つまり全員で問題をよく理解し合う必要がある。当然、リスク登録簿の変更を行う。", "category": "人"}, {"id": 99, "q": "所要時間見積り手法として、パーク分析を利用した三点見積り法がより好まれる理由は次のうちどれですか？", "choices": ["A. 類推見積りとの併用である。", "B. 単点見積りの方が、精度が高い。", "C. ボトムアップ見積りとも呼ばれる。", "D. 係数見積りの一種である。"], "correct": "A", "explanation": "三点見積りのパラメーターは、類推見積りによって提示される。その中の最頻値に重み付けすることによって精度を上げることができるので、単点見積りよりも精度が上がる。ボトムアップ見積りは詳細見積りでこちらのほうが精度が高い。係数見積りはパラメトリック見積りの一種であり、三点見積りとは異なる。", "category": "プロセス"}, {"id": 100, "q": "プロジェクトの成果物に関して、スポンサーの期待が満たされていないという課題が発生しました。次のうちどのアクションを実行する必要がありますか？", "choices": ["A. リスク登録簿を作成する。", "B. ステークホルダーのエンゲージメント計画を作成する。", "C. コミュニケーション・マネジメント計画を作成する。", "D. ワーク・ブレークダウン・ストラクチャー（WBS）を作成する。"], "correct": "B", "explanation": "この問題は、かなり広範な領域に関係しているので一見難しく見えるが、スポンサーの期待をマネジメントするためには、エンゲージメント計画が必須である。その後、具体的なコミュニケーションやスコープ、リスク、などのマネジメントについて明確にする。", "category": "プロセス"}, {"id": 101, "q": "プロジェクトの成果物に新しい機能を追加したいというときに、必須の手順は次のうちどれですか？", "choices": ["プロジェクト・マネジャーから承認を得る。", "プロジェクト・スポンサーから承認を得る。", "主要担当分野専門家（SME）が承認する。", "変更管理委員会（CCB）が承認していることを確認する。"], "correct": "D", "explanation": "変更作業の実施は、公式の変更管理プロセスに沿ってCCBの事前承認が必要である。", "category": "プロセス"}, {"id": 102, "q": "プロジェクトは多くの機能を開発するための計画段階にあり、成功のためにはより多くの資源が必要であると判断しました。そこで一時的な変更としてM契約を結ぶことにしました。このシナリオは、次のどのリスク対応戦略に相当しますか？", "choices": ["軽減", "転嫁", "受容", "回避"], "correct": "D", "explanation": "要員数（人数）の不足という原因について増員という対策をとることは、回避にあたる。", "category": "ビジネス環境"}, {"id": 103, "q": "プロジェクトは、主要なIT展開プロジェクトを終了し、すべてのリソースをリリース・マネジャーに引き渡し、機能や品質について検証されていることを確認したので、顧客に通知しました。次にとるべき活動はどの活動になりますか？", "choices": ["リリース・ドキュメントを確認し、完成させる。", "学んだ教訓を組織のナレッジベースに追加する。", "リスク登録簿、ステークホルダー、およびチームメンバーを更新する。", "調達計画が終了していることを確認する。"], "correct": "B", "explanation": "A、C、Dなどは終わっているので、あとは教訓登録簿を組織リポジトリに保管する。", "category": "人"}, {"id": 104, "q": "プロジェクト進捗の途中で、要員不足が頻繁になり、外部委託を続けることにしました。このシナリオでは、プロジェクト・マネジャーは何をすべきですか？", "choices": ["コミュニケーション・マネジメント計画を確認する。", "プロジェクト・スポンサーにエスカレーションする。", "組織図を作成する。", "調達マネジメント計画を改訂する。"], "correct": "D", "explanation": "プロジェクトの途中で対話を決定したので、調達マネジメント計画を改訂しなければならない。", "category": "プロセス"}, {"id": 105, "q": "あるプロジェクトでは、900人時間分を外部委託する必要があります。その発注側の部門について、すべてのプロバイダーが要項を満たすことを期待しています。プロジェクト・マネジャーは、次のうちどのアクションを実行する必要がありますか？", "choices": ["各プロバイダーと直接交渉する。", "プロバイダーとの入札者会議を実施する。", "調達マネジメント計画が各プロバイダーに配布されていることを確認する。", "各プロバイダーをステークホルダー登録簿に追加する。"], "correct": "B", "explanation": "A、C、Dは、Bの後で行う。", "category": "プロセス"}, {"id": 106, "q": "あなたの担当するプロジェクトでは、経験のない分野における成功を期待されています。あなたは他に似ているプロジェクトの成功事例を参照したいと考えています。これを確認するために、あなたは何を利用する必要がありますか？", "choices": ["詳細図", "フォーカス・グループ", "ベンチマーキング", "ファシリテーション"], "correct": "C", "explanation": "ベストプラクティスを入手するためには、ベンチマーキングを行うとよい。", "category": "プロセス"}, {"id": 107, "q": "製品とリリースしたところ、顧客からこのプロダクトのパフォーマンス上の課題を指摘されました。担当していたプロジェクト・マネジャーは、プロジェクト・マネジメント計画の中から品質保証の資料を確認したところ、品質コスト（COQ）について十分に検討されていなかったことに気がつきました。プロジェクト・マネジャーはどのカテゴリのCOQを検討すべきでしたか？", "choices": ["予防コスト", "内部不良コスト", "評価コスト", "時間差分析"], "correct": "B", "explanation": "リリースした後のコストだから、外部不良に対応するコストである。", "category": "プロセス"}, {"id": 108, "q": "あなたの担当するプロジェクトではプロジェクトマネジメント計画が承認され、実行の段階に入りました。しかしながら、プロダクトの開始を行うことができない特定の状況では、主要事項を満たせないということが判明しました。プロジェクト・スポンサーは納期を守れません。この情報を考慮して、プロジェクト・マネジャーは何をすべきですか？", "choices": ["リスク分析を実施し、プロジェクト・スポンサーに状況を説明する。", "課題を解決して顧客を満足させる。", "顧客に連絡し、リスクの受け入れについて交渉する。", "統合変更管理のプロセスを実行する。"], "correct": "D", "explanation": "課題修正のための変更要求を提出し、判断を変更管理委員会（CCB）に委ねる。", "category": "プロセス"}, {"id": 109, "q": "あなたは、プロジェクト・ステークホルダーの利害が相反すると認識しています。ステークホルダー満足度評価マトリックスを利用することで検討しましたが、利害の変動からあるステークホルダーがあなたのプロジェクトに抵抗していることがわかりました。この目標を達成するために、次に何をすべきですか？", "choices": ["ステークホルダーのエンゲージメント計画を伝える。", "すべてのステークホルダーと会って、プロジェクトの関心についてだけ話をする。", "ステークホルダーのエンゲージメント計画を作成する。", "ステークホルダー登録簿が完全であり更新されていることを確認する。"], "correct": "C", "explanation": "ステークホルダーの利益相反について認識しているということから、ステークホルダー登録簿はできていると判断する。関与度評価マトリックスを作成したので、次はそれを基にエンゲージメント計画を作成する番である。A、Bは、次の行動である。Dは更新について指摘しているが、変更があったわけではない。", "category": "プロセス"}, {"id": 110, "q": "あなたは、ある中程度企業にプロジェクト・マネジャーとして採用されました。今回のプロジェクトでは、新製品を開発して新たな市場に進出しようとする意図があります。あなたは、主要資源を収集する必要がありますが、そのとき次のうちどのツールまたは手法を使用する必要がありますか？", "choices": ["プレアサインメント", "顧客の判断", "プロダクト分析", "影響度／トレーサビリティ・マトリックス"], "correct": "A", "explanation": "選択肢の中で、要求事項収集プロセスに使われる手法はAだけである。", "category": "人"}, {"id": 111, "q": "あるプロジェクトには、複数のローカル・チームメンバーとバーチャル・チームメンバーがいます。チームメンバー間のスケジュールの優先順位のコンフリクトが発生したので、その解決のために、プロジェクト・マネジャーは中立で会議をスケジュールしました。このシナリオについて正確な説明は次のうちどれですか？", "choices": ["集中対応", "協力問題解決", "強制指示", "妥協和解"], "correct": "B", "explanation": "関係者全員で話し合い機会をもって解決策を考えようとしている。その話し合いの場までは記述されていないので意図を汲み取る。", "category": "人"}, {"id": 112, "q": "プロジェクトの成果物が、期待通りに達成されなかったとステークホルダーが感じている場合、ステークホルダーの承認を得るためにプロジェクト・マネジャーが取るべき次の行動はどれですか？", "choices": ["スコープ・マネジメント計画書", "要求事項マネジメント計画書", "作業パフォーマンス報告書", "品質マネジメント計画書"], "correct": "C", "explanation": "もともとステークホルダーの期待は何だったのかを、そしてそれを基にして作成したスコープ記述書を確認することによって不満の原因が明白になり、解決の糸口になる。", "category": "プロセス"}, {"id": 113, "q": "新製品開発を要求している顧客の一人の枠組みが、プロジェクト経験全体の機能を要求しています。あなたは、この要求事項を確認する情報がなければなりません。あなたは最初にどの文書を参照する必要がありますか？", "choices": ["変更ログ", "変更マネジメント計画書", "変更要求文書", "実行責任、説明責任、相談、および情報提供（RACI）マトリックス"], "correct": "B", "explanation": "変更に関するプロセスや承認権限などは変更マネジメント計画に記述されている。", "category": "プロセス"}, {"id": 114, "q": "あなたのプロジェクトは成功裏に完了しつつあり、あなたは正式な報告を準備しています。次に行う活動は何ですか？", "choices": ["人材文書を更新する。", "プロジェクト・チームを再割り当てする。", "未使用の資金を再配分する。", "ステークホルダーの承認を得る。"], "correct": "D", "explanation": "正式な終結活動には、ステークホルダー（プロジェクト・スポンサー）の承認が含まれる。Aは調達の終結で行う。Bはプロジェクト型組織の場合に行う。Cは最後である。まずはBを行う必要がある。", "category": "プロセス"}, {"id": 115, "q": "あなたのプロジェクトは実行段階にありますが、資金不足のため、終了することになりました。あなたはプロジェクトを終結しなければなりません。あなたがプロジェクト・マネジャーとして最初に取るべき行動は何ですか？", "choices": ["ステークホルダー登録簿の情報に依存する。", "プロジェクトマネジメント情報システム（PMIS）を参照する。", "ステークホルダーのニーズと期待を分析しながらプロジェクトのスコープを確認する。", "ステークホルダーの新しい要求事項を取得した後、リスク分析を行う。"], "correct": "B", "explanation": "最初にBを行った後で、C、D、Aというように活動する。", "category": "プロセス"}, {"id": 116, "q": "ある機能部門マネジャーはプロジェクトのステークホルダーでもあるのですが、時々対立があり、プロジェクトへの責任を機能部門チームの一人に委任しました。ところがその新しいステークホルダーは会議に出席していません。プロジェクト・マネジャーは、この新しいステークホルダーを関与させる必要があります。プロジェクト・マネジャーは何をすべきですか？", "choices": ["新しいステークホルダーと一緒にプロジェクト計画を論議し、関与レベルを評価する。", "プロジェクトのスケジュールと、割り当てられた特定のタスクを新しいステークホルダーに提示する。", "機能部門マネジャーがこの新しいステークホルダーに説明し、関連するすべての会議に出席するように依頼する。", "新しいステークホルダーに、より経験豊富なステークホルダーとペアを組んで責任を果たすことを学ぶように依頼する。"], "correct": "A", "explanation": "本人と会う時間を設けて協調することが重要である。", "category": "プロセス"}, {"id": 117, "q": "あなたは、ステークホルダーとの定期的なレビューに参加しているところです。プロジェクト・スポンサーは、あなたに成果物の正確性を検証して受け入れる方法を確認するよう求めています。次に何を参照すべきですか？", "choices": ["検証済み成果物", "受入基準", "品質測定基準", "品質管理測定値"], "correct": "D", "explanation": "成果物の正確性の基準は品質尺度の1つである。品質尺度は品質マネジメント計画書の一部として記述される。", "category": "プロセス"}, {"id": 118, "q": "あなたは、車両や設備へのアクセスが制限されている遠隔地でのプロジェクトを担当しています。あなたは、多数の費用がかかることを理解しながらも、追加の車両を自社で配送することを提案しました。プロジェクト・マネジャーはどのような種類のリスク対応策を行っていますか？", "choices": ["転嫁", "軽減", "受容", "回避"], "correct": "C", "explanation": "転嫁も軽減も回避もしていない。リスクを受容しているだけである。", "category": "プロセス"}, {"id": 119, "q": "あなたは、スポンサーからプロジェクト憲章を受け取った後、プロジェクトマネジメント計画書の作成を開始しようとしています。ところがプロジェクトマネジメント・オフィス（PMO）には過去の情報がありません。この状況であなたが次のステップのうち適切なものはどれですか？", "choices": ["類推見積りを利用する。", "当該分野専門家にアドバイスを求める。", "最初のキックオフ・ミーティングを実施する。", "プロジェクト・スポンサーに情報提供を依頼する。"], "correct": "B", "explanation": "Aは、コストや納期の見積り時に行われる。Cは、計画が作成された後に行う。Dは、PMOにもないので現実的ではない。", "category": "ビジネス環境"}, {"id": 120, "q": "マーケティング・チームは新しいウェブサイトを開発するプロジェクトを進めています。この利用者としてのターゲット・オーディエンスのスクリプト設定を行う必要があります。この状況に使用する適切なツールまたはテクニックは、次のうちどれですか？", "choices": ["ブレーンストーミング", "プロダクト分析", "ベンチマーキング", "フォーカス・グループ"], "correct": "D", "explanation": "ターゲット・オーディエンスに関わる特定のグループとの議論が必要である。", "category": "プロセス"}, {"id": 121, "q": "プロジェクトの実行段階で新しいプロジェクト・マネジャーが任命されました。次のプロジェクト・マネジャーは、コスト見積りを見直す目的でプロジェクト・スコープを確認したところ、ワーク・ブレークダウン・ストラクチャー（WBS）で一部の成果物が欠落していることに気づきました。このマネジャーは次にどのステップを行うべきですか？", "choices": ["顧客に確認して、これらの欠落した成果物を追加する必要があるかどうかを確認する。", "プロジェクトマネジメント・オフィス（PMO）に、この作業のための追加資金を要求するように依頼する。", "スケジュールに従って当該成果物をWBSに含めて、プロジェクト総コストを再計算する。", "当該分野専門家に確認して、これらの成果物が必要かどうかを判断する。"], "correct": "C", "explanation": "コスト見積りが目的なので、仮にWBSに必要な成果物を追加してコスト見積りを行う。この活動自体は正式にWBSを変更することではないので承認は不要だが、正式に追加する場合は変更要求を必要とする。", "category": "ビジネス環境"}, {"id": 122, "q": "プロジェクト・マネジャーが、3人の主要なステークホルダーと会議をしています。各ステークホルダーは、プロジェクトでの調整役を持っていて、それぞれ自分の意見を強く主張しています。プロジェクト・マネジャーは、プロジェクト憲章の承認を得る必要があります。プロジェクト・マネジャーは何をすべきですか？", "choices": ["ステークホルダー分析を実施する。", "3人のステークホルダーが合意するように交渉を進める。", "プロジェクト・スポンサーにコンフリクトの解決を要求する。", "キックオフ・ミーティングを使用して、プロジェクトの目標を設定する。"], "correct": "B", "explanation": "顧客の承認に3人が関わっている状況で、お互いの意見が衝突しているので厳しい交渉となったようだが、合意に向けて交渉を続けることが最優先した場合は、プロジェクトは開始できない。", "category": "人"}, {"id": 123, "q": "スポンサーがプロジェクトを承認したところで、プロジェクト・マネジャーは、チームメンバー、主要なステークホルダー、およびスポンサーを会議に招待しました。この会議の主な目的は、チームが主要なプロジェクト成果物を確認する際のガイドとなる文書を作成することです。この会議の最終成果物は次のうちどれでしょうか？", "choices": ["マイルストーン・リスト", "ワーク・ブレークダウン・ストラクチャー（WBS）辞書", "スコープ・マネジメント計画書", "要求事項マネジメント計画書"], "correct": "C", "explanation": "Aは、スケジュール・アクティビティを定義する際に作成されて、スケジュールの目安になる。Bは、Cの結果として作成される。Dは、Cが最初にステークホルダーの要求を把握するために作成される。", "category": "人"}, {"id": 124, "q": "あなたのプロジェクトは開発の実行段階にありますが、この段階では、重要な顧客情報が存在しています。コンプライアンス・マネジャーはプロジェクト文書についてのプライバシー違反の問題を提起してきました。プロジェクト・マネジャーが対応する必要のある文書は何ですか？", "choices": ["作業範囲記述書（SOW）", "リスク登録簿", "ビジネスケース", "品質登録簿"], "correct": "B", "explanation": "コンプライアンス違反という問題が発生したという課題提起なので、まずは課題ログを確認し、内容を追加した後、オーナーを任命して解決にあたる。", "category": "ビジネス環境"}, {"id": 125, "q": "主要なプロジェクト・チームメンバーが個人的な理由で1.5か月の休暇を要求しています。プロジェクトは納期に進み50％程度の進捗状況です。この状況でプロジェクト・マネジャーは最初に何をすべきですか？", "choices": ["このチームメンバーに、休暇を延期できるかどうかを確認する。", "機能部門マネジャーと課題について話し合い、メンバー交換を要求する。", "休暇がプロジェクトにどのように影響するかを評価する。", "資源マネジメント計画を参照する。"], "correct": "C", "explanation": "まずはCから始める。その結果に応じてさまざまな対策が行われる。", "category": "人"}, {"id": 126, "q": "あなたは新製品開発を準備している会社で働いています。この作業には現在は持っていないスキルが必要です。このプロジェクトを開始するには、あなたはプロジェクト・マネジャーとして何をする必要がありますか？", "choices": ["詳細なプロジェクト要求事項を作成する。", "品質マネジメントに焦点を当てる。", "ハイレベルのリスクの評価に焦点を当てる。", "組織内の分析を作成する。"], "correct": "C", "explanation": "プロジェクトには必ずリスクが想定されるが、この時点では目標を決めていないので、個別リスクというよりハイレベルの全体リスクを特定し、プロジェクト憲章に記述する。", "category": "プロセス"}, {"id": 127, "q": "タスクAは、タスクCの開始の4週間前に終了する必要があります。タスクBが終了したらタスクCが開始されます。この関係のタスクはどの種類ですか？", "choices": ["終了―開始（FS）", "終了―終了（FF）", "開始―開始（SS）", "開始―終了（SF）"], "correct": "B", "explanation": "タスクAとBの関係を直接表現していないのでわかりにくい問題である。分析すると次のように表現できる。タスクAとCは、FS＋4週というラグを持っている。タスクBとCは、単純なFS関係。タスクAとBの関係は、Bが終了した時にはAも終了していなければならないということなので、FF関係と言える。", "category": "プロセス"}, {"id": 128, "q": "シニアレベルのステークホルダーは、成果物の受入テスト中に、自分の認識で可能なプロダクト機能が開発されていないことに懸念を表明しています。プロジェクト・マネジャーは、将来この課題を回避したいと考えています。これを達成するための1つの方法は何ですか？", "choices": ["ステークホルダーの期待を適切にマネジメントする。", "変更マネジメント計画を作成する。", "スコープ・ベースラインが承認されていることを確認する。", "ステークホルダーへのプロダクト・デモを開催する。"], "correct": "C", "explanation": "ステークホルダーの要求事項と成果物の仕様との違いを問題にしている。選択肢にはないが、要求事項マネジメント計画書も確認する必要がある。最終的な仕様はスコープ記述書になるので、それを含むスコープ・ベースラインが承認されていることを確認する必要がある。", "category": "プロセス"}, {"id": 129, "q": "ある会社の顧客が、購入した製品について、仕様より低調であると不満を抱いています。アジャイル型プロジェクトを進めているマネジャーは顧客の懸念に気づきました。生産ラインで何かを変更する必要があるかどうか判断する必要があります。プロジェクト・マネジャーはこのタスクにどのツールまたは手法を使用できますか？", "choices": ["管理図", "散布図", "ヒストグラム", "パレート図"], "correct": "C", "explanation": "生産ラインでの問題を特定するには、製品のバラツキを時系列に表すことができる管理図が有効である。", "category": "プロセス"}, {"id": 130, "q": "あなたのプロジェクトで開発した製品はスコープ内で定義された機能要求事項の97％にしか対応していませんが100％ではなかったため、顧客が製品を受け入れていません。プロジェクト・マネジャーは、このような事態に何をすべきでしたか？", "choices": ["コスト・マネジメント計画を評価する。", "ワーク・ブレークダウン・ストラクチャー（WBS）を作成する。", "品質尺度が定義されていることを確認する。", "要求事項文書を確認する。"], "correct": "C", "explanation": "3%分の誤差についての許容基準は、バラツキのしきい値によって定義される。バラツキのしきい値を決めているのは品質尺度である。", "category": "プロセス"}, {"id": 131, "q": "プロジェクトは、プロダクト・テストの30％が自動化されることを目標にしていたので、テスト部門の協力が欠かせません。プロジェクト・マネジャーはテスト部門に作業範囲記述書（SOW）を提出しました。ただし、テスト部門のマネジャーは、プロジェクト結果が部門の利益につながると考えているため、協力的ではありません。プロジェクト・マネジャーは最初に何をすべきですか？", "choices": ["テスト・エンジニアがプロジェクトに参加できなくなるリスクを提起する。", "SOWを理解するために、テスト部門のマネジャーと会議を開く。", "プロジェクト・スポンサーにテスト自動化の理解の獲得を要求する。", "テスト自動化のための費用便益分析の結果をテスト部門マネジャーに提示する。"], "correct": "B", "explanation": "すでにプロジェクト憲章が承認されて開始されているので、A、C、Dは済んでいると解釈する。そこでテスト部門マネジャーの協力を得るためには、なすべき仕事について話し合いを始めるとよい。それでも非協力的ならばスポンサーにエスカレーションする。", "category": "ビジネス環境"}, {"id": 132, "q": "あなたのプロジェクトは、新製品の開発を行うためにコスト見積りを行います。あなたは、コンポーネントの構築リソースが明確に定義されていることを確認し、各コンポーネントの納期が特定されています。プロジェクトの見積りコストを取得するには、プロジェクト・マネジャーはどの見積り技法を使用する必要がありますか？", "choices": ["類推", "三点", "ボトムアップ", "パラメトリック"], "correct": "C", "explanation": "作業が明確ならば、精度は次のようにボトムアップ見積りが最も高くなる。類推＜三点＜パラメトリック＜ボトムアップ", "category": "プロセス"}, {"id": 133, "q": "プロジェクトは計画段階ですが、残念なことに主要なステークホルダーがコンフリクト期間中2.5週間は関与できなくなることが判明しました。プロジェクト・マネジャーは、主要なステークホルダーが関与できないことを知った後、最初に何をすべきでしょうか？", "choices": ["課題ログが更新されていることを確認し、他のステークホルダーに連絡する。", "ステークホルダーの不在中に、職務説明が代わりの人を提供するよう要求する。", "スポンサーとのミーティングを開催し、状況を評価し、代替案を検討する。", "計画を続行し、人の変更がプロジェクトのスケジュールに与える影響を評価する。"], "correct": "A", "explanation": "主要なステークホルダー不在という課題を認識し、その後、対象としてCやDを行うこともある。Bは、『財務部門』という向こう側派のようなステークホルダーを想定するところに問題がある。", "category": "人"}, {"id": 134, "q": "プロジェクトは実行段階に入ったところですが、規制法が承認され、一時的なコンプライアンス要件が付けられました。この法律は、3つのベースラインに影響を与える可能性があります。プロジェクト・マネジャーが取るべき正しいステップはどれですか？", "choices": ["リスクの軽減を開始する。", "プロジェクトマネジメント計画が更新されていることを確認する。", "調達と契約マネジメント部門にエスカレーションする。", "変更要求を提出する。"], "correct": "D", "explanation": "コンプライアンスを即時守らなければならないので、予備費の中にもよるがスコープ、スケジュール、コストに関するベースラインの変更が必要となる。実行段階だから変更要求が認められないと変更できない。もし認められないようだったらCも行う。", "category": "ビジネス環境"}, {"id": 135, "q": "クリティカル・パス上の作業が予定より遅れています。コスト・パフォーマンス・インデックス（CPI）は1.1です。この状況でプロジェクトの遅れを取り戻すための対策によって、どうなることが予想されますか？", "choices": ["クラッシングが並行して行われる。", "スコープを短縮する。", "コストとリスクが増加する。", "手戻りがある。"], "correct": "C", "explanation": "この状況でとられる対策はクラッシングかファスト・トラッキングである。どちらにしてもリスクが増大する。CPIが1.1ということは予算に余裕があるので、資源を追加するクラッシングが追加。AとDはファスト・トラッキングを表している。Bは最後の手段である。", "category": "プロセス"}, {"id": 136, "q": "あなたは、わずかに重要なステークホルダーがいるという複雑なプロジェクトを担当しています。あるとき、その上級マネジャーがチームメンバーにプロジェクト報告を要求したことに気づきました。次に実行するのに適切なステップはどれですか？", "choices": ["プロジェクト計画書に目を通し、目標と成果物を確認する。", "プロジェクト目標を確認し、プロジェクト・マネジャーが作成したメモを探す。", "プロジェクトのスケジュールを変更し、知識の共有プロセスに関連する新しい活動を追加する。", "プロジェクトの予算を再検討して、追加の時間が必要かどうかを判断する。"], "correct": "D", "explanation": "まず、コミュニケーション・マネジメント計画書を確認して、このようなプロセスがあるのかどうか確認する。なければ、その後で対策を考える。", "category": "人"}, {"id": 137, "q": "あなたのプロジェクトは実行段階に入って7か月過ぎたところです。あなたは、コスト・パフォーマンス・インデックス（CPI）が0.8であると報告を受けました。さらに傾向分析によると、CPIは下降傾向にあります。あなたが次に行うべきステップは何ですか？", "choices": ["コストの再ベースライン化のために変更要求を提出する。", "追加の資源を要求する。", "クラッシング手法を採用する。", "マネジメント予備費を使う。"], "correct": "A", "explanation": "CPIが0.8ということは20%の赤字である。通常はコスト・コントロールのしきい値を10%以内に設定することが多いため、この0.8という値をリカバリーしていき値内に戻さなければならない。プロジェクトが開始されて7か月経過していて、さらに悪化傾向なのでリカバリーは無理であろう。そこで再計画ということになる。Dは変更要求が承認されてからの行動である。この問題は業務経験が問われている。Bでは余計に悪化し、Cはスケジュール短縮技法の１つ。", "category": "人"}, {"id": 138, "q": "研究開発部門は、プロジェクトの途中でプロダクト要求事項に変化を加えたため、予想する販売数に大きな影響を与える可能性があり、プロジェクトのスコープにも影響を与える可能性があります。プロジェクト・マネジャーが次に行うべき適切な活動は何ですか？", "choices": ["リスク対応策を策定し、それに応じてリスク登録簿を変更する。", "予測技法を活用する。", "コンティンジェンシー予備費の使用を計画し、リスク登録簿を更新する。", "アーンド・バリュー・マネジメント（EVM）などの方法を利用する。"], "correct": "A", "explanation": "販売数に影響を与える可能性もリスクと捉える。Cは対策の1つである。Bは、EVMの完成時総コスト見積り（EAC）とも解釈できるが、その場合はDと同じになる。Dは、プロジェクト内での成果に関する評価の達成度合いを評価する手法である。", "category": "プロセス"}, {"id": 139, "q": "製品のクラウド・タイムが求められ、プロジェクトが進行中です。プロジェクト・マネジャーはプロジェクトの要求事項を満たすために、新しい要求を追加してチーム形成する必要があります。プロジェクト・マネジャーは、次にどのアクションを実行する必要がありますか？", "choices": ["オンデマンド・サービスを活用する。", "コロケーションを実施する。", "新しいチームをトレーニングする。", "ウェビナーを主催する。"], "correct": "C", "explanation": "チームを編成したらスキル・ギャップを把握して必要なトレーニングを計画する。A、B、Dはトレーニングの種類と考えられる。ターン・アラウンド・タイム(TurnAroundTime)とは、仕事の始まりから終わりまでの時間を表すが、PMBOK用語ではない", "category": "人"}, {"id": 140, "q": "プロジェクト・マネジャーが会社を辞めてしまったので、急ぎ新しいプロジェクト・マネジャーが任命されました。新しいプロジェクト・マネジャーは、プロジェクトの成功に向けてチームをリードしなければなりません。新しいプロジェクト・マネジャーは何をすべきですか？", "choices": ["プロジェクト計画書に目を通し、目標と成果物を確認する。", "プロジェクト目標を確認し、プロジェクト・マネジャーが作成したメモを探す。", "プロジェクトのスケジュールを変更し、知識の共有プロセスに関連する新しい活動を追加する。", "プロジェクトの予算を再検討して、追加の時間が必要かどうかを判断する。"], "correct": "A", "explanation": "まずは、プロジェクトの現状把握から始める。Bはその中の活動の1つである。メンバーの面談も重要である。結果として、C、Dが行われることもある。", "category": "プロセス"}, {"id": 141, "q": "プロジェクト・チームのメンバーは、学んだ教訓を登録簿に記述する時間がないと述べています。プロジェクト・マネジャーはこの課題にどのように対応すべきですか？", "choices": ["A. チームメンバーに残業して登録するよう求める。", "B. 学んだ教訓を記録する責任者を任命する。", "C. 学んだ教訓の登録を不要とする。", "D. レトロスペクティブで得た内容を登録簿に記録する時間を確保する。"], "correct": "B", "explanation": "まず、チームメンバーの意識を向上させなければならない。そのあと採用することもありうる。Aは遅すぎる。Cは、PMOへ教訓の収集を依頼している状況だが、それにしても変更要求は変更管理委員会（CCB）へ提出するものである。", "category": "人"}, {"id": 142, "q": "あなたは、複数の地理的に離れた地域のステークホルダーが参加するプロジェクトを担当しています。今あなたは、キックオフ・ミーティングのプレゼンテーション資料を作成しているところです。あなたは、主要なステークホルダーが関与していることを確認するために、どのように進めますか？", "choices": ["A. ステークホルダーの関与に対処するために、キックオフ・ミーティングのガイドを作成する。", "B. さまざまなタイムゾーンのチームに対応するために、ステークホルダー会議の日時を調査する。", "C. 必要なすべての参加者またはその代理人が参加できることを確認する。", "D. キックオフ・セッションの議題と資料が明瞭であることを確認する。"], "correct": "D", "explanation": "A〜Dは、すべて正しいように見えるが、最も大切なことは全員参加である。", "category": "人"}, {"id": 143, "q": "プロジェクト・マネジャーは、退職することになったので、自分が持っているすべてのプロジェクトを後任に引き継ぐ必要があります。引継ぎ中に、重要なプロジェクトに障害が発生したのです。この課題に対応する際の適切な最初のステップは何ですか？", "choices": ["A. リスク・マネジメント計画を確認して、この課題の元になり得るリスクとそれに対する対応策を確認する。", "B. スケジュール、チームのプロジェクト・マネジャーに、課題への対応方法を確認する。", "C. 課題の実行に必要な追加の時間による遅れを考慮して、タイムラインを修正する。", "D. ステークホルダーと連絡を取り、課題、提案されたコスト、およびプロジェクトに関連する納期の変更の可能性について説明する。"], "correct": "A", "explanation": "まずは課題ログを確認してから対処しなければならないが、それに担当する選択肢はBとDである。Bは、ほかのプロジェクトマネジャーに確認するということだが、自分のチーム内で対応すべきである。Dは、解決策の1つで、まだ早すぎる。選択肢AとCは、リスクが発生して課題となったことを表している。そこで、そもそもリスクとしての対応がされていたのかどうかを確認する。その内容によって、Cのように顧客への対応が変わってくるというように考えて、Aを選択する。マネージャーが新しいかどうかは関係ない。", "category": "プロセス"}, {"id": 144, "q": "あるチームメンバーが、プロジェクトの実行段階で個人的休暇を取りました。これに応じて、プロジェクト・チームは複数のアクティビティを再スケジュールしなければならなくなりました。その結果、重要なアクティビティが同時に行われることになってしまいました。プロジェクト・マネジャーが最初にすべきことは何ですか？", "choices": ["A. 元のスケジュールに戻すことでリスクを軽減する。", "B. リスク登録簿を更新してから、プロジェクトのリスクをランク付けする。", "C. 新たに認識されたリスクに対する適切な対応を特定する。", "D. プロジェクト・チームで新たに認識されたリスクを評価する。"], "correct": "D", "explanation": "重要な活動が同時に行われなければならない、というリスクが特定されたと考える。そのリスクを分析、評価してどう対応するか決定し、実施する、という流れになる。", "category": "人"}, {"id": 145, "q": "あなたは、3大陸にまたがる5か国からのチームメンバーがいるプロジェクトを担当します。このプロジェクトをうまくマネジメントするには、あなたは何をする必要がありますか？", "choices": ["A. チームメンバー間で協力するとは実際に何を意味するかを認識し、地域の慣習を認識する。", "B. 人事部門からのガイドを求め、この課題を認識してもらう。", "C. 別のプロジェクト・マネジャーにプロジェクトの担当を依頼し、この人について必要なスキルを習得する。", "D. 必要な学習資料を収集して、各チームメンバーの文化の解釈をより深く理解し、ニーズに積極的に対応する。"], "correct": "D", "explanation": "成果物2のためには予測型がよい。成果物3にはアジャイルが適しているので、結局ハイブリッドになる。", "category": "人"}, {"id": 146, "q": "あなたのプロジェクトは要員を補充するために外注先のベンダーと契約しています。あるときメンバーの一人がプロジェクト・チームのメンバーに問題提起しました。二人は解決策を見つけることができません。あなたは問題の解決を認識していますが、この課題についてその当者に連絡するとき、最初にどのタイプのコミュニケーションを使用する必要がありますか？", "choices": ["A. 対面", "B. 電話", "C. 契約書", "D. メール"], "correct": "A", "explanation": "基本は対面による双方向コミュニケーションである。", "category": "人"}, {"id": 147, "q": "あるプロジェクトの状況データが送られてきました。あなたは次のデータをどのように読み取りますか？ PV 3,500,000USD、AC 700,000USD、EV 50,000USD、BAC 680,000USD。", "choices": ["A. 予定より進んでいる。", "B. 遅れており、予定より進んでいる。", "C. 予算超過し、予定より遅れている。", "D. 予定どおりで、予定より遅れている。"], "correct": "C", "explanation": "設問から、EVMの各パラメーターは次のようになる。BAC=3,500,000US$、PV=700,000US$、AC=750,000US$、EV=680,000US$、SPI=EV/PV=680,000/700,000=0.97 進捗遅れ、CPI=EV/AC=680,000/750,000=0.91 予算超過 と判断できる。", "category": "プロセス"}, {"id": 148, "q": "プロジェクトに変更が要求され承認されましたが、チームメンバーは変更内容に合意していません。プロジェクト・マネジャーは、この課題に対処するためにどのような行動を取るべきですか？", "choices": ["A. 変更諮問委員会に連絡する。", "B. プロジェクト・スポンサーの承認を求める。", "C. プロジェクト・マネジャーのビジネスユニットのディレクターからのサインオフを求める。", "D. プロジェクトに関与している5か国のスポンサーにサインオフを依頼する。"], "correct": "D", "explanation": "チームメンバーが、変更の内容に合意していないことが課題だが、正式な手続きによって承認されているのならば決定に従わなくてはならない。変更マネジメント計画の中に記述されているプロセスや役割などに従う必要がある。もし、その変更によるリスクがチームメンバーから提示されているのならば、リスクとして対応を講じる。", "category": "人"}, {"id": 149, "q": "あなたは、3大陸にまたがる5か国からのチームメンバーがいるプロジェクトを担当します。このプロジェクトをうまくマネジメントするには、あなたは何をすべきですか？", "choices": ["A. チームメンバー間で協力するとは実際に何を意味するかを認識し、地域の慣習を認識する。", "B. 人事部門からのガイドを求め、この課題を認識してもらう。", "C. 別のプロジェクト・マネジャーにプロジェクトの担当を依頼し、この人について必要なスキルを習得する。", "D. 必要な学習資料を収集して、各チームメンバーの文化の解釈をより深く理解し、ニーズに積極的に対応する。"], "correct": "B", "explanation": "文化的な認識の方法についての問題である。Bは、人事部の問題にすり替わっている。Cはプロジェクトを担当する以前の問題。Dは、一見よさそうだがおそらくかなり時間がかかってしまう。Aはプロジェクトを進めながら実行できるし、メンバーにも理解されやすい。", "category": "人"}, {"id": 150, "q": "あなたはプロジェクト状況の分析から、影響の大きな4つの潜在リスクがあることを確認しました。そのリスクに対処するためには特別な要員が4人必要だということを承知しました。その要員は重要な成果物を作成する別のプロジェクトに従事しています。あなたは、これらのリスクにすぐに対処するための解決策を見つける責任がありますが、どのような行動を取るべきですか？", "choices": ["A. 機能マネジャーに連絡し、その要員の可用性を評価して、スケジュールのクラッシュまたは再スケジュールを交渉する。", "B. サードパーティ・ベンダーと契約し、ベンダーをこれらのタスクに割り当てる。", "C. そのリスクを受け入れ、リスクを頻繁に監視して、潜在的な緩和策を講じる。", "D. 潜在的なスケジュールの遅延を解決するために予備費を計画し、それを承認する。"], "correct": "A", "explanation": "Bはリスク転嫁の例だが、時間はかかりそうである。Cは弱すぎる。Dは意味がない。", "category": "プロセス"}, {"id": 151, "q": "プロジェクト計画の視点では、プロジェクトの成果物は締め切りの少なくとも3週間前に品質を確認する必要があるとされています。ここが複数の成果物がこの品質基準を満たしてしまいません。プロジェクト・マネジャーは、次のうち何をすべきですか？", "choices": ["A. 品質マネジメント計画の関連部分を書き直す。", "B. プロジェクトの内部監査の実現可能性について問い合わせる。", "C. プロジェクトのスポンサーに連絡し、アドバイスを求める。", "D. 特性要因を作成して分析する。"], "correct": "D", "explanation": "まず品質要求事項を満たさない問題を把握する必要がある。特性要因図は石川ダイアグラムや魚の骨図などと呼ばれ、事象の原因要因の分析に役立つツールである。A〜Cは対策である。", "category": "プロセス"}, {"id": 152, "q": "あなたのプロジェクトの規模は非常に大きくて、5つの異なる国の機能グループが許容されていますが、完了間近です。そして統合文書を作成中で、あなたはプロジェクトの成果物の受け入れを獲得する必要があります。あなたは何をすべきですか？", "choices": ["A. サインオフについては運営委員会に連絡する。", "B. プロジェクト・スポンサーの承認を求める。", "C. プロジェクト・マネジャーのビジネスユニットのディレクターからのサインオフを求める。", "D. プロジェクトに関与している5か国のスポンサーにサインオフを依頼する。"], "correct": "B", "explanation": "プロジェクトの受入れはスポンサーが行う。", "category": "プロセス"}, {"id": 153, "q": "あなたは毎日、課題ログを確認していますが、あるとき2人のチームメンバーのタスクがスケジュール・ベースラインよりかなり遅れていることに気づきました。あなたは何をすべきですか？", "choices": ["A. 関連するチームメンバーと協力して、遅れているタスクを確認し、課題の解決戦略を決定する。", "B. 課題を文書化し、プロジェクト・スポンサーにエスカレーションしてどのように解決していくかを相談する。", "C. スケジュールより遅れているチームメンバーにタスクが遅れた理由と対策を確認する。", "D. 余分なリスクの対応を回避するために、遅れているタスクを遂行する必要があることを責任あるチームメンバーに通知する。"], "correct": "A", "explanation": "Bは遅延の原因によるが、自分たちで解決することが望ましい。C、Dは権限不足を示すが、指示するだけで実質的ではない。リーダーとして協業する態度が大切。", "category": "人"}, {"id": 154, "q": "あなたは新しくプロジェクト・チームを編成したところです。あなたは、最初の会議で、チームメンバーがお互いを知り合い、プロジェクトに意欲を示していると感じていることを確認しましたが、彼らはまだプロジェクトの具体的な内容については知らされていません。このチームは、チーム形成のどの段階にありますか？", "choices": ["A. 動乱期", "B. 安定期", "C. 成立期", "D. 遂行期"], "correct": "C", "explanation": "タックマン・モデルの問題である。まだ顔を合わせたばかりなので成立期と言える。", "category": "人"}, {"id": 155, "q": "あなたは強力な計画駆動型の文化を持つ企業に採用されました。あなたはアジャイルの経験を持ち移転も受けています。その企業では組織全体でアジャイルの採用を始めたばかりです。そのプログラムを推進するためにあなたが実行すべき活動は次のうちどれですか？ 2つ選択してください。", "choices": ["A. MoSCoW手法がすべてのプロジェクト要件の記述に採用されていることを確認する。", "B. 実行されているすべてのプロジェクトを分析し、適切なアジャイル・モデルを特定する。", "C. この経験がメンバーの若手よりも多くのテストを実行するため、テスターは少なくなる。", "D. より自立し、部門の枠を超えるよう、チームをトレーニングする。", "E. 各部署で顧客満足度の機会を特定する。"], "correct": "C, E", "explanation": "アジャイルの採用は、その利点を伝え、実証することで可能になる。Aは優先順位付けの手法。B、Dは次に行うべきアクション。", "category": "人"}, {"id": 156, "q": "あなたは製品開発を担うプロジェクト・マネジャーです。市場分析の結果、この製品は競合が価格を押し下げていて、同社は市場シェアを失いつつあることがわかりました。このままでは、投資の見返りを得る可能性は低いようです。プロジェクトをこの情勢に適応させるためには、あなたは次のうちどれを実行する必要がありますか？ 2つ選択してください。", "choices": ["A. 開発スケジュールを、時給の半分以下で働くことができる外部の専門スタッフに段階的に移す。", "B. プロジェクト・スコープを変更して、競合他社と同じ機能を提供し、同じ価格で販売する。", "C. 成果の費用便益分析を行い、達成のためのコストと開発スピードを最適化する。", "D. バックログにストーリーを追加する。", "E. アジャイル型プロジェクトを進めて、固定された予算内で価値を段階的に最大化する。"], "correct": "C, E", "explanation": "費用便益分析と固定予算の増分開発は、ビジネスを中断することなく収益性の損失に対処するのに適切である。", "category": "プロセス"}, {"id": 157, "q": "あなたのチームメンバーは、複数の地域に分散してアジャイル型プロジェクトで活動しており、最近、クライアントのWebサイトが作業に集中できるようになっています。ところがデイリー・ミーティングが長すぎ、若手メンバーがわからないことが増えています。どのように対応しますか？", "choices": ["A. 関連するチームメンバーと協力して、遅れているタスクを確認し、課題の解決戦略を決定する。", "B. 課題を文書化し、プロジェクト・スポンサーにエスカレーションしてどのように解決していくかを相談する。", "C. スケジュールより遅れているチームメンバーにタスクが遅れた理由と対策を確認する。", "D. 余分なリスクの対応を回避するために、遅れているタスクを遂行する必要があることを責任あるチームメンバーに通知する。"], "correct": "B", "explanation": "この場合、クライアントは、最新のプラグインの問題がビジネスとコストに与える影響を認識する必要がある。", "category": "プロセス"}, {"id": 158, "q": "最近完成したアジャイル・チームのストーリーポイントの完了状況を分析しています。計画と実績は一致しているのですが、直近の2回のイテレーションのポイント数はそれ以前のイテレーションよりも少なくなっています。この状況を表すものとして考えられることは次のうちどれですか？", "choices": ["A. チーム全員の作業効率が落ちている。", "B. チームメンバーの一人が休暇を取っている。", "C. スクラムマスターが休暇を取っている。", "D. プロダクト・オーナーが休暇を取っている。"], "correct": "B", "explanation": "Aも考えられないことはないのだが、チームとしていい状態で議論し、パフォーマンスを示しているので別の要因と言える。C、Dはあまり影響をあたえない。", "category": "人"}, {"id": 159, "q": "推進している予測型プロジェクトは、あと10週間で完了するはずでしたが、未処理事項が多く完了の見込みが立ちません。その中にはスケジュールが不確実な外部イベントに依存するものもあります。あなたは未処理事項をどのように処理する必要がありますか？", "choices": ["A. 未処理事項を次のプロジェクトに引き継ぐよう調整を得る。", "B. 条件付きで残り、繰り返しアクティビティを実行するために、5回のアジャイル型のイテレーションを計画する。", "C. 未処理のアクティビティのスコープを削除し、顧客から承認を得る。", "D. 進捗を追加してスケジュールをクラッシュし、未処理のアクティビティを完了する。"], "correct": "B", "explanation": "不確実性が高いので、予測型からアジャイル型に切り替える。5回のスプリントで、残り10週間をカバーするように活動すると、アジャイルの柔軟性により、その都度最適な手法で作業を完了することができる。", "category": "プロセス"}, {"id": 160, "q": "あなたは、ある地域での紛争に対応する医療支援プロジェクトに任命されました。そこで医薬品と医療サービスが切実に必要とされています。ところが、バッチ単位の変更、安全性、未完成のロードと、現地での建設が遅れる可能性があります。ただし、開発を遅らせて新しい場所にセットアップする機械に適応でき、医薬品の開発プロセスは変わりません。展開される医療センターの数を最適化するという目標を立てた場合、それを最もよくサポートするプロジェクト・アプローチはどれですか？", "choices": ["A. 各センターの展開が依存関係の複数となる、完全に予測的なライフサイクル", "B. プロセスの予測型アプローチに組み込まれたアジャイル展開のセット", "C. アジャイル・プロセスのセットに組み込まれた予測型で分離されたセット", "D. 依存関係と展開が各イテレーションで組み合わされる、完全にアジャイルなライフサイクル"], "correct": "C", "explanation": "展開自体は定められた作業順序に従うため、アジャイル・プロセス内の予測型アプローチが正しい。展開を最大化するには、アジャイルな方式で処理される一連の変化する条件を測定して、可能な限り多くの並列展開処理が必要", "category": "プロセス"}, {"id": 161, "q": "あなたのチームメンバーは、複数の地域に分散してアジャイル型プロジェクトを推進しています。ところがデイリー・ミーティングが長すぎ、若手メンバーがわからないことが増えています。どのように対応しますか？", "choices": ["A. 関連するチームメンバーと協力して、遅れているタスクを確認し、課題の解決戦略を決定する。", "B. 課題を文書化し、プロジェクト・スポンサーにエスカレーションしてどのように解決していくかを相談する。", "C. スケジュールより遅れているチームメンバーにタスクが遅れた理由と対策を確認する。", "D. 余分なリスクの対応を回避するために、遅れているタスクを遂行する必要があることを責任あるチームメンバーに通知する。"], "correct": "B, C", "explanation": "グループごとに1つのWebカメラに制限されたスタンドアップ・ミーティングは、効果を損なうことなくミーティング時間を短縮できる。", "category": "プロセス"}, {"id": 162, "q": "プロジェクトマネジメント・オフィス（PMO）のリーダーは、地理的に離れた複数のプロジェクト・マネジャー間で、よりタイムリーな連携状況の報告と経験の共有を望んでいます。PMOがこのニーズを満たすためのアジャイル手法はどれですか？ 2つ選択してください。", "choices": ["A. Doneの定義", "B. 電子カンバン・ボード", "C. バックログの洗練", "D. バーチャル・デイリー・スタンドアップ・ミーティング", "E. 隔週のレトロスペクティブ"], "correct": "B, C", "explanation": "A、C、Dは個々のプロジェクトにおける活動である。マネジャー間のミーティングのためには、Bの電子カンバン・ボードはタイムリーな進捗報告を提供できるし、Eの隔週のレトロスペクティブは最近の経験と改善のための教訓を共有できる。個々のプロジェクトにおけるレトロスペクティブではないので『隔週』にとらわれないように気をつける。", "category": "プロセス"}, {"id": 163, "q": "あるアジャイル・チームでは、一部のタスクは個人に割り当てるのではなく組織的に割り当てています。そのためスタッフが頻繁に交代します。プロジェクト・マネジャーは、常時のチームメンバーを維持するためにどのようにしますか？", "choices": ["A. ローテーション・メンバーにタスクを割り当てる権限を常勤のメンバーに与える。", "B. プロジェクトを離れるスタッフに、評価を求めるメンバーを選ぶように依頼する。", "C. 交代する要員が作業するタスクを説明する時間を設ける。", "D. プロジェクトを離れるスタッフに、適切な後任のローテーションを紹介するように要求する。"], "correct": "D", "explanation": "知識や経験の喪失は、チームにとって最も破壊的な要因の1つである。知識共有のためのワークショップはこれを軽減し、チームをより機能横断型に発展させるのに役立つ。", "category": "人"}, {"id": 164, "q": "あなたのチームでは相互信頼が厚くコラボレーションが促されています。あなたはサーバント・リーダーシップを発揮しています。チーム構成のどの段階にありますか？", "choices": ["A. 動乱期", "B. 安定期", "C. 成立期", "D. 遂行期"], "correct": "C", "explanation": "チーム形成の完成段階では、チームメンバーは協働し、チームパフォーマンスが最も良くなる。", "category": "人"}, {"id": 165, "q": "イテレーション・レビューの最中に、アジャイル・チームのメンバーに自己肯定感が乏しい一人が、プロダクト・オーナーの考えに反対を表明しました。この状況でプロジェクト・マネジャーが取るべき次の対応は何ですか？ 2つ選択してください。", "choices": ["A. チームに、論争のポイントを解決する方法を提案するよう促す。", "B. プロダクト・オーナーの責任と権限をチームに説明する。", "C. メンバーに自分の感情的知性を高めるよう勧める。", "D. 介入し、口頭でしているメンバーに代わって仲裁する。", "E. 反対したメンバーを適合するように促す。"], "correct": "A, D", "explanation": "プロジェクト・マネジャーは、協力や問題解決のアプローチでコンフリクトに対処する。最初にすべての視点が表されていることを確認してから、コンフリクトを解決する方法についての提案を求める。チームにある人の権限について思い出させたり、講義しているメンバーを叱責する場合は、アジャイルの原則と互換性なく、結局最後の手段である命令や指示のアプローチを使用することになる。一方、静かにさせたり、落ち着かせたりするだけでは、妥協点に到達できない可能性がある。", "category": "人"}, {"id": 166, "q": "チームがプロダクト・オーナーと激しく議論して少し険悪になっています。プロダクト・オーナーは、既存の要件を満たすためには法務部門の承認が必要であると回答して、結果的に製品の市場投入が遅れているのです。プロジェクト・マネジャーはこのようなコンフリクトをどのように防止／解決しますか？", "choices": ["A. 進捗状況を報告するために、サポート部門が毎日の会議に出席することを要求する。", "B. チームの質問や懸念に対応するために、プロダクト・オーナーに常時応答できるようにする。", "C. 複数部門に影響がある場合は、チームにそのユーザーストーリーを最終カードに移動するように要求する。", "D. プロダクト・オーナーに、この補助がワークフローの最後にある論理的経緯をチームに提示するように要求する。"], "correct": "B", "explanation": "この対立の原因は、コミュニケーションの欠如と、遅延を防ぐための怠慢である。最も望ましい対応は、チームとプロダクト・オーナーとの目的で良好なコミュニケーションを維持することである。", "category": "人"}, {"id": 167, "q": "あなたのプロジェクトは大規模なので、3つのスクラム・チームを持っています。あるときSOS会議で、チームの代表者間で対立が発生しました。各チームが自分のチームのパフォーマンスが最も優れていると主張しているのです。このときあなたはこの提案にどう対応しますか？", "choices": ["A. 良いアイデアだ、と賛成する。", "B. 各チームのストーリーポイントの基準が違うので、無意味であることを説明する。", "C. ストーリーポイントに各チームの人数で割った値を使うように提案する。", "D. 私の観察しているチーム状況から判断する、と提案する。"], "correct": "B", "explanation": "アジャイル・プロジェクトでは、そもそもチーム間の競争をあおるような比較や評価をするべきではない。いずれにしてもベロシティは次のイテレーションで完了すべき目標を設定するために使うものである。ストーリーポイントはプランニング・ポーカーなどを利用して相対的な数値として算出しているので、チームごとに基準が異なる。", "category": "プロセス"}, {"id": 168, "q": "あなたの会社では多くのフィーチャーを持つ新製品を開発しようと決めました。その会議の中で、すべてのフィーチャーを遅延してから検討するという意見が出ました。最初に決めるフィーチャーはどれですか？", "choices": ["A. 予測型", "B. 反復型", "C. 漸進型", "D. ハイブリッド型"], "correct": "C", "explanation": "どのアプローチでも開発可能だが、資金繰りやキャッシュフローを考慮すると、漸進型でフィーチャーを開発するたびに新しいバージョンとして発売すると効果的である。", "category": "プロセス"}, {"id": 169, "q": "アジャイル開発チームは作業のパフォーマンスと品質改善のために、プロジェクトのコンポーネントを評価しました。その結果、次のイテレーションでパフォーマンスが劇的に向上したのです。ところがその後にプロダクト・オーナーは成果について不満を表し、チームに元に戻すように依頼しました。この状況で、プロジェクト・マネジャーはどのようにすればよいですか？", "choices": ["A. 基本ルールに、すべての意思決定の基準を確認し、話手が乱れないように徹底する。", "B. チームとのコラボレーションが不足していることから、プロダクト・オーナーと一緒に作業できる環境を作る。", "C. プロダクト・オーナーに定期的に連絡を取るようリードし、必要に応じてチームとチェックアップ・ミーティングを実施する。", "D. サーバント・リーダーとしてすべての障害を取り除くよう行動し、チームが作業に集中できるようにする。"], "correct": "C", "explanation": "プロダクト・オーナーは、プロダクト・スコープについて最終的な権限を持っている。したがって、スコープの変更またはスコープに影響を与える可能性のある変更を検討する場合は、プロダクト・オーナーの関与が重要。", "category": "人"}, {"id": 170, "q": "アジャイル・チームを編成する場合には、チームメンバー構成として機能横断型が良いとされています。その場合、一人ひとりのスキル内容としてT字型の要員を採用したいのですが、その意味は次のうちどれですか？", "choices": ["A. 幅広いスキルと深い知識を持っている。", "B. 幅広い知識とすべての領域で深い専門性を持っている。", "C. 幅広い知識と特定領域での深い専門性を持っている。", "D. 信頼が広くてやりがいが合うこと。"], "correct": "C", "explanation": "T字型のメンバーを集めることで、チームはより適切にコラボレーションして作業を完了することができる。", "category": "人"}, {"id": 171, "q": "一人のアジャイル・チームのメンバーは、独自の方法で、長い間作業を妨げていた問題を解決しました。しかしながら製品のリリース後、その解決策が別のトラブルを引き起こしたようです。品質の責任はプロジェクト・チームに明白に要求しています。プロジェクト・マネジャーはどのように対応すべきですか？ 2つ選択してください。", "choices": ["A. そのチームメンバーに、理論的根拠と学んだ教訓を提示するように依頼する。", "B. チーム全員と協力して、Doneの定義とのギャップを特定する。", "C. 自分勝手な行動を取らないようチームメンバーに注意する。", "D. チーム全員と協力して、Readyの定義とのギャップを特定する。", "E. 人間だから間違いはあるものだし、是正された見込みであることを品質責任者に伝達する。"], "correct": "A, B", "explanation": "アジャイル・チームは、作業の結果への説明責任を持つ。この場合、学んだ貴重な教訓とエラーの背景が共有できる。さらにチームは、Doneの定義を見直すことによって、問題を防ぐ方法について協業する。", "category": "人"}, {"id": 172, "q": "一人のメンバーが、スプリントのコミットメントを果たすために残業し、疲弊しています。これでは次のスプリントに影響を及ぼすことは必至です。この状況を見定めるとともに、適切に調整を遂行していくのは次のうち誰ですか？", "choices": ["A. プロジェクト・マネジャー", "B. プロダクト・オーナー", "C. チームメンバー", "D. スクラムマスター"], "correct": "D", "explanation": "スクラムマスターには、ワークロードを含むチームの作業条件が適切で持続可能であることを保証する役割がある。", "category": "人"}, {"id": 173, "q": "プロダクト・オーナーの役割のうち、スクラム・チーム責任であるものは、次のうちどれですか？", "choices": ["A. プロダクト・バックログのユーザーストーリーを優先順位付けする。", "B. プロダクト・バックログを機能やリリースを個別に開発する。", "C. スプリント・バックログから選択ストーリーを選択する。", "D. バックログにストーリーを追加する。"], "correct": "D", "explanation": "プロダクト・オーナーは、通常、ビジネスニーズに応じてバックログに優先順位を付けて計画する唯一の権限を持っている。洗練にも優先順位付けが必要。ストーリーの追加は委任することができるが、プロダクト・オーナは後で優先順位をつける。Cはそもそもチームの役割。", "category": "プロセス"}, {"id": 174, "q": "アジャイル・チームの進捗状況を監視しているときに、プロジェクト・マネジャーは、経験豊かなメンバーのアウトプットが、経験浅いメンバーのアウトプットに比べてはるかに低いことに気づきました。この状況として考えられる理由はどれですか？", "choices": ["A. この経験豊かなメンバーは、通常、経験の浅いメンバーよりも長く作業するので、報告として作業時間が少なくなる傾向がある。", "B. 通常、若いメンバーの方が、生産性が高くなる。", "C. この経験豊かなメンバーは、若手よりも多くのテストを実行するため、テストストーリーは少なくなる。", "D. この経験豊かなメンバーが担当するストーリーポイントの見積りは一貫して低すぎる。"], "correct": "D", "explanation": "ストーリーポイントの見積りは、アジャイル・プロジェクトの進捗状況を測定するために使用され、実際の作業時間は、再調整しない限り明らかではない。ただし、重要な注意点として、アジャイル・チームは自己組織化されており、個々の努力ではなく、チームの成果に重点が置かれていることを認識する。", "category": "人"}, {"id": 175, "q": "複数のプロジェクト・チーム間の情報共有を促進するための手法として、最も効果的だと思われるものは、次のうちどれですか？", "choices": ["A. 各チームの進捗報告を1つのデータベースにまとめて格納し、保管のために全員に知らせる。", "B. 全チームの進捗状況と教訓情報を映し出せるモニターを各チームのそばに設置する。", "C. 全チームの情報をとりまとめた簡潔なダッシュボードを各チームの近辺に貼り出す。", "D. 各チームから許可された情報のみを共有するようにする。"], "correct": "B", "explanation": "Aはプル型コミュニケーションであり、効果が薄い。Cは通常、エグゼクティブ用の手法である。Dは真の共有にはならないし、許可するためにレビューする手間がかかる。", "category": "プロセス"}, {"id": 176, "q": "ソフトウェア開発作業において差異分析を行っていたら、図に示すような差異が発生していることがわかりました。この問題に対処するために最も効果的な手段は、次のうちどれですか？", "choices": ["A. 遅れている作業Aに要員を追加する。", "B. スケジュール予測を立ててマイルストーンを移動してもらう。", "C. 作業Cを取りやめることをステークホルダーに確認してもらう。", "D. 作業Aには経験豊かな専門家を追加し、作業BとCにはクラッシングかファスト・トラッキングを行う。"], "correct": "D", "explanation": "遅れている作業にはスペシャリストによるサポートが効果的であるが、遅れそのものは取り戻せない。そこで後続のBとCに資源を追加するか、並行作業として遅れを取り戻す作戦が効果的である。どちらにしても同時にリスク対策が求められる。", "category": "プロセス"}, {"id": 177, "q": "アジャイル型プロジェクトが進行中です。競争がすでにプロダクト・バックログに入っているストーリーに関する変更要求を出してきました。どう対応すればよいでしょうか？", "choices": ["A. 顧客の要求なので、他の作業を中断してよい対応して変更履歴を始める。", "B. プロダクト・オーナーと顧客の話し合いで追加するストーリーを更新し、バックログ全体を洗練する。", "C. チームに伝達し、スプリント・バックログに影響がないか調べる。", "D. すでにバックログにあるストーリーは変更できない旨顧客に伝える。"], "correct": "B", "explanation": "Aは、よほど緊急性や重要度の高い変更以外は即対応することはない。Cは、プロダクト・バックログにあるストーリーとスプリント・バックログにあるストーリーには独立性があるはずなので心配ないが、もし気がかりならば調べる程度。Dは全くの間違い。", "category": "プロセス"}, {"id": 178, "q": "プロジェクトで獲得した教訓を共有する方法として望ましい活動はどれですか？", "choices": ["A. プロジェクトの終結時に全チームメンバーから集めて文書化しリポジトリに保管する。", "B. 一人ひとりがプロジェクト中に獲得した教訓をチーム内に回覧し、プロジェクト終結時にリポジトリに保管する。", "C. プロジェクトマネジメント・オフィス（PMO）などのメンバーがチームメンバーから聴き取って教訓登録簿に記入する。", "D. チーム内で貢献力の優れたメンバーが他のメンバーから聴き取った情報を教訓登録簿に記入する。"], "correct": "B", "explanation": "どれも手法としてはありうるが、Bがタイムリーであり最も優れている。Aは、終結時では忘れてしまったり喪失してしまったりするリスクがある。Cはチームメンバーから聞き取る時間やタイミングに様々な課題が想定される。Dは、Cと同じようであり、さらに役割分担の問題が発生しやすい。", "category": "プロセス"}, {"id": 179, "q": "あなたはあるITプロジェクトを担当する安全側のプロジェクト・マネジャーに任命されました。このプロジェクトは納期が厳しいにもかかわらず、発注側の理由により契約が遅れています。社内のステークホルダーからは、どう進めるのだから先行着手をせよ、という助言が届いてきました。あなたはどう対応すべきですか？", "choices": ["A. 未契約による遅滞についてのリスク分析を行いリスク登録簿に記載しておく。", "B. 社内のプロジェクト・スポンサーに、プロジェクトのリスクではなく組織のリスク対応としての意思決定を依頼する。", "C. 未契約なので一切活動しない。", "D. どうせ開始することになるという予測のもとに開始する。"], "correct": "B", "explanation": "組織としてリスク受容するかどうかを確認することが大切である。CやDはその後の行動となる。Aは、プロジェクトが開始していないので意味がない。", "category": "プロセス"}, {"id": 180, "q": "あなたはプロジェクト・マネジャーとしていて、アジャイル型の2つのチームでハイブリッド型プロジェクトを進めています。アジャイル・チームは組織の期待がうまく行われていますが、アジャイル・チームの間での情報共有ができていません。次のうちどの手法が望ましいですか？", "choices": ["A. アジャイル・チーム内で利用されている情報システムを全アジャイル・チームでも利用できるように設置する。", "B. 予測型チームに必要な情報を精査し、アジャイル・チームが予測型チームの進捗会議に間に合わせるように依頼する。", "C. アジャイル・チームが所有する階段を計画チームに保管する。", "D. 予測型チームはプロジェクトマネジメント・オフィス（PMO）に依頼して、必要な情報を提供してもらう。"], "correct": "A", "explanation": "B、C、Dはほぼ同じことであり、余計なワークロードが発生する。", "category": "ビジネス環境"}];
+
+// ===== STATE =====
+let currentMode = 'normal';
+let selectedCount = 10;
+let sessionQuestions = [];
+let currentIdx = 0;
+let sessionResults = [];
+let selectedChoices = [];
+let answered = false;
+
+// ===== STORAGE =====
+function loadStorage() {
+  try { return JSON.parse(localStorage.getItem('pmp_stats_v2') || '{}'); }
+  catch(e) { return {}; }
+}
+function saveStorage(data) {
+  localStorage.setItem('pmp_stats_v2', JSON.stringify(data));
+}
+function getStats() {
+  const s = loadStorage();
+  if (!s.byCategory) s.byCategory = {};
+  if (!s.wrongQuestions) s.wrongQuestions = {};
+  if (!s.totalAnswered) s.totalAnswered = 0;
+  if (!s.totalCorrect) s.totalCorrect = 0;
+  return s;
+}
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('pmp_settings') || '{}'); }
+  catch(e) { return {}; }
+}
+function saveSettings2(obj) {
+  localStorage.setItem('pmp_settings', JSON.stringify(obj));
+}
+
+function recordResult(qid, category, isCorrect) {
+  const s = getStats();
+  s.totalAnswered++;
+  if (isCorrect) s.totalCorrect++;
+  if (!s.byCategory[category]) s.byCategory[category] = {answered:0, correct:0};
+  s.byCategory[category].answered++;
+  if (isCorrect) s.byCategory[category].correct++;
+  if (!isCorrect) {
+    if (!s.wrongQuestions[qid]) s.wrongQuestions[qid] = {count:0, lastWrong:0};
+    s.wrongQuestions[qid].count++;
+    s.wrongQuestions[qid].lastWrong = Date.now();
+  }
+  saveStorage(s);
+}
+
+// ===== SYNC =====
+function getGasUrl() {
+  return getSettings().gasUrl || '';
+}
+
+function updateSyncBadge() {
+  const badge = document.getElementById('sync-badge');
+  const url = getGasUrl();
+  if (!url) {
+    badge.className = 'sync-badge none';
+    badge.textContent = '⚙ Sheets未設定';
+  } else {
+    badge.className = 'sync-badge ok';
+    badge.textContent = '☁ Sheets連携中';
+  }
+}
+
+function showToast(msg, duration=3000) {
+  const el = document.getElementById('sync-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+async function syncToSheets(manual=false) {
+  const url = getGasUrl();
+  if (!url) {
+    if (manual) showToast('⚠ Apps Script URLが設定されていません');
+    return;
+  }
+  const s = getStats();
+  const payload = {
+    action: 'save',
+    stats: s
+  };
+  try {
+    if (manual) showToast('☁ Sheetsへ送信中...');
+    const resp = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {'Content-Type': 'text/plain'}
+    });
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      if (manual) showToast('✅ Sheetsへ送信しました');
+    } else {
+      if (manual) showToast('❌ 送信エラー: ' + (result.message || '不明'));
+    }
+  } catch(e) {
+    if (manual) showToast('❌ 通信エラー: ' + e.message);
+  }
+}
+
+async function syncFromSheets(manual=false) {
+  const url = getGasUrl();
+  if (!url) {
+    if (manual) showToast('⚠ Apps Script URLが設定されていません');
+    return;
+  }
+  try {
+    if (manual) showToast('☁ Sheetsからデータ取得中...');
+    const resp = await fetch(url + '?action=load');
+    const result = await resp.json();
+    if (result.status === 'ok' && result.stats) {
+      saveStorage(result.stats);
+      if (manual) {
+        showToast('✅ Sheetsからデータを取得しました');
+        renderHome();
+        renderStats();
+      }
+    } else {
+      if (manual) showToast('⚠ データなし、または取得エラー');
+    }
+  } catch(e) {
+    if (manual) showToast('❌ 通信エラー: ' + e.message);
+  }
+}
+
+async function testConnection() {
+  const url = document.getElementById('gas-url').value.trim();
+  const resultEl = document.getElementById('test-result');
+  resultEl.className = 'test-result';
+  resultEl.textContent = '接続テスト中...';
+  resultEl.style.display = 'block';
+  if (!url) {
+    resultEl.className = 'test-result ng';
+    resultEl.textContent = '❌ URLを入力してください';
+    return;
+  }
+  try {
+    const resp = await fetch(url + '?action=ping');
+    const data = await resp.json();
+    if (data.status === 'ok') {
+      resultEl.className = 'test-result ok';
+      resultEl.textContent = '✅ 接続成功！スプレッドシートと連携できています';
+    } else {
+      resultEl.className = 'test-result ng';
+      resultEl.textContent = '❌ レスポンスエラー: ' + JSON.stringify(data);
+    }
+  } catch(e) {
+    resultEl.className = 'test-result ng';
+    resultEl.textContent = '❌ 接続失敗: URLを確認してください（' + e.message + '）';
+  }
+}
+
+function onGasUrlInput() {
+  document.getElementById('test-result').style.display = 'none';
+}
+
+// ===== SCREENS =====
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (name === 'home') renderHome();
+  if (name === 'stats') renderStats();
+  if (name === 'settings') loadSettingsUI();
+}
+
+// ===== HOME =====
+function renderHome() {
+  const s = getStats();
+  const totalRate = s.totalAnswered > 0 ? Math.round(s.totalCorrect / s.totalAnswered * 100) : 0;
+  document.getElementById('home-stats').innerHTML = `
+    <div class="stat-box">
+      <div class="stat-num">${s.totalAnswered}</div>
+      <div class="stat-label">累計回答数</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">${totalRate}%</div>
+      <div class="stat-label">総合正答率</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num">${Object.keys(s.wrongQuestions).length}</div>
+      <div class="stat-label">苦手問題数</div>
+    </div>
+  `;
+  const weakCount = Object.keys(s.wrongQuestions).length;
+  document.getElementById('weak-count-label').textContent = weakCount + '問';
+  const weakCard = document.getElementById('mode-weak');
+  if (weakCount === 0) {
+    weakCard.style.opacity = '0.5'; weakCard.style.cursor = 'not-allowed';
+    if (currentMode === 'weak') { currentMode = 'normal'; selectMode('normal'); }
+  } else {
+    weakCard.style.opacity = '1'; weakCard.style.cursor = 'pointer';
+  }
+  updateSyncBadge();
+}
+
+function selectMode(mode) {
+  const s = getStats();
+  if (mode === 'weak' && Object.keys(s.wrongQuestions).length === 0) return;
+  currentMode = mode;
+  document.getElementById('mode-normal').classList.toggle('selected', mode === 'normal');
+  document.getElementById('mode-weak').classList.toggle('selected', mode === 'weak');
+}
+
+function selectCount(n, btn) {
+  document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedCount = n;
+  const ci = document.getElementById('custom-input');
+  if (n === 0) { ci.classList.add('show'); selectedCount = parseInt(document.getElementById('custom-n').value) || 15; }
+  else { ci.classList.remove('show'); }
+}
+
+function updateCustomCount(val) {
+  selectedCount = Math.min(180, Math.max(1, parseInt(val) || 1));
+}
+
+// ===== QUIZ =====
+function startQuiz() {
+  const s = getStats();
+  let pool = [...ALL_QUESTIONS];
+  if (currentMode === 'weak') {
+    const wrongIds = Object.keys(s.wrongQuestions).map(Number);
+    const weakPool = pool.filter(q => wrongIds.includes(q.id));
+    if (weakPool.length > 0) pool = weakPool;
+  }
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const count = Math.min(selectedCount || 10, pool.length);
+  sessionQuestions = pool.slice(0, count);
+  sessionResults = [];
+  currentIdx = 0;
+  showScreen('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = sessionQuestions[currentIdx];
+  const total = sessionQuestions.length;
+  answered = false; selectedChoices = [];
+  document.getElementById('quiz-progress').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('progress-bar').style.width = (currentIdx / total * 100) + '%';
+  const badge = document.getElementById('cat-badge');
+  badge.textContent = q.category;
+  badge.className = 'cat-badge cat-' + q.category;
+  document.getElementById('question-num').textContent = `問題 No.${q.id}`;
+  document.getElementById('question-text').textContent = q.q;
+  const correctArr = q.correct.split(',').map(s => s.trim()).filter(Boolean);
+  const isMulti = correctArr.length > 1 && !q.correct.includes('1') && !q.correct.includes('2') && !q.correct.includes('3');
+  document.getElementById('multi-hint').style.display = isMulti ? 'block' : 'none';
+  const ms = document.getElementById('multi-submit');
+  isMulti ? ms.classList.add('show') : ms.classList.remove('show');
+  const list = document.getElementById('choices-list');
+  list.innerHTML = '';
+  q.choices.forEach((choice, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice;
+    btn.dataset.idx = idx;
+    btn.onclick = isMulti ? () => toggleMultiChoice(btn, idx) : () => submitSingle(btn, idx);
+    list.appendChild(btn);
+  });
+  document.getElementById('result-card').style.display = 'none';
+}
+
+function getLetterFromIdx(idx) { return String.fromCharCode(65 + idx); }
+
+function submitSingle(btn, idx) {
+  if (answered) return;
+  answered = true;
+  const q = sessionQuestions[currentIdx];
+  const correctLetters = q.correct.split(',').map(s => s.trim());
+  const chosen = getLetterFromIdx(idx);
+  const isCorrect = correctLetters.includes(chosen);
+  document.querySelectorAll('.choice-btn').forEach((b, i) => {
+    b.disabled = true;
+    const letter = getLetterFromIdx(i);
+    if (correctLetters.includes(letter)) b.classList.add('show-correct');
+    if (b === btn && !isCorrect) b.classList.add('selected-wrong');
+    else if (b === btn && isCorrect) b.classList.add('selected-correct');
+  });
+  showResult(isCorrect, q);
+  recordResult(q.id, q.category, isCorrect);
+  sessionResults.push({id: q.id, category: q.category, correct: isCorrect});
+}
+
+function toggleMultiChoice(btn, idx) {
+  if (answered) return;
+  const i = selectedChoices.indexOf(idx);
+  if (i >= 0) {
+    selectedChoices.splice(i, 1);
+    btn.style.borderColor = ''; btn.style.background = '';
+  } else {
+    selectedChoices.push(idx);
+    btn.style.borderColor = '#1a56a0'; btn.style.background = '#eef4ff';
+  }
+}
+
+function submitMulti() {
+  if (answered || selectedChoices.length === 0) return;
+  answered = true;
+  const q = sessionQuestions[currentIdx];
+  const correctLetters = q.correct.split(',').map(s => s.trim());
+  const chosenLetters = selectedChoices.map(getLetterFromIdx).sort();
+  const isCorrect = JSON.stringify(chosenLetters) === JSON.stringify([...correctLetters].sort());
+  document.querySelectorAll('.choice-btn').forEach((b, i) => {
+    b.disabled = true; b.style.borderColor = ''; b.style.background = '';
+    const letter = getLetterFromIdx(i);
+    if (correctLetters.includes(letter)) b.classList.add('show-correct');
+    if (selectedChoices.includes(i) && !correctLetters.includes(letter)) b.classList.add('selected-wrong');
+  });
+  document.getElementById('multi-submit').classList.remove('show');
+  showResult(isCorrect, q);
+  recordResult(q.id, q.category, isCorrect);
+  sessionResults.push({id: q.id, category: q.category, correct: isCorrect});
+}
+
+function showResult(isCorrect, q) {
+  const rc = document.getElementById('result-card');
+  rc.style.display = 'block';
+  rc.className = 'result-card' + (isCorrect ? '' : ' wrong');
+  const label = document.getElementById('result-label');
+  label.innerHTML = isCorrect ? '✅ <span>正解！</span>' : '❌ <span>不正解</span>';
+  label.className = 'result-label ' + (isCorrect ? 'correct' : 'wrong');
+  document.getElementById('correct-ans').textContent = `正答: ${q.correct}`;
+  document.getElementById('explanation-text').textContent = q.explanation || '解説なし';
+  const isLast = currentIdx === sessionQuestions.length - 1;
+  document.getElementById('btn-next').textContent = isLast ? '結果を見る →' : '次の問題へ →';
+}
+
+function nextQuestion() {
+  currentIdx++;
+  if (currentIdx >= sessionQuestions.length) showResultScreen();
+  else renderQuestion();
+}
+
+// ===== RESULT =====
+function showResultScreen() {
+  const total = sessionResults.length;
+  const correct = sessionResults.filter(r => r.correct).length;
+  const pct = Math.round(correct / total * 100);
+  document.getElementById('big-score').innerHTML = `${pct}<span>%</span>`;
+  document.getElementById('score-sub').textContent = `${correct} / ${total} 問正解`;
+  const grade = document.getElementById('grade-badge');
+  if (pct >= 90) { grade.textContent = '🏆 S評価'; grade.className = 'grade-badge grade-s'; }
+  else if (pct >= 70) { grade.textContent = '✅ A評価 (合格圏)'; grade.className = 'grade-badge grade-a'; }
+  else if (pct >= 50) { grade.textContent = '📘 B評価'; grade.className = 'grade-badge grade-b'; }
+  else { grade.textContent = '📕 C評価 (要学習)'; grade.className = 'grade-badge grade-c'; }
+  const catData = {};
+  sessionResults.forEach(r => {
+    if (!catData[r.category]) catData[r.category] = {answered:0, correct:0};
+    catData[r.category].answered++;
+    if (r.correct) catData[r.category].correct++;
+  });
+  const catColors = {'人':'#7b1fa2','プロセス':'#1565c0','ビジネス環境':'#e65100'};
+  document.getElementById('cat-results').innerHTML = Object.entries(catData).map(([cat, d]) => {
+    const rate = Math.round(d.correct / d.answered * 100);
+    return `<div class="cat-result-box">
+      <h4>${cat}</h4>
+      <div class="cat-score-big" style="color:${catColors[cat] || '#333'}">${rate}%</div>
+      <div class="cat-score-sub">${d.correct}/${d.answered}問</div>
+      <div class="mini-bar-wrap"><div class="mini-bar" style="width:${rate}%;background:${catColors[cat] || '#333'}"></div></div>
+    </div>`;
+  }).join('') || '<p class="no-data">データなし</p>';
+  const wrongItems = sessionResults.filter(r => !r.correct);
+  const s = getStats();
+  document.getElementById('wrong-list').innerHTML = wrongItems.length === 0
+    ? '<p style="color:#2e7d32;font-size:0.88rem">全問正解です！🎉</p>'
+    : wrongItems.map(r => {
+        const cnt = s.wrongQuestions[r.id]?.count || 1;
+        const q = ALL_QUESTIONS.find(x => x.id === r.id);
+        return `<div class="weak-item">
+          <span class="weak-qnum">Q${r.id}</span>
+          <span>${q ? q.q.substring(0, 50) + '...' : ''}</span>
+          <span class="wrong-cnt">${cnt}回</span>
+        </div>`;
+      }).join('');
+  showScreen('result');
+  // Auto sync to Sheets after session
+  syncToSheets(false);
+}
+
+// ===== STATS =====
+function renderStats() {
+  const s = getStats();
+  const totalRate = s.totalAnswered > 0 ? Math.round(s.totalCorrect / s.totalAnswered * 100) : 0;
+  document.getElementById('stats-total-content').innerHTML = `
+    <div style="color:var(--muted);font-size:0.82rem;margin-bottom:12px">累計 ${s.totalAnswered} 問回答 / ${s.totalCorrect} 問正解</div>
+    <div class="stats-row-item">
+      <span>総合正答率</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="bar-wrap"><div class="bar-fill" style="width:${totalRate}%;background:var(--primary)"></div></div>
+        <strong>${totalRate}%</strong>
+      </div>
+    </div>
+  `;
+  const cats = ['人','プロセス','ビジネス環境'];
+  const catColors = {'人':'#7b1fa2','プロセス':'#1565c0','ビジネス環境':'#e65100'};
+  document.getElementById('stats-cat-content').innerHTML = cats.map(cat => {
+    const d = s.byCategory[cat] || {answered:0, correct:0};
+    const rate = d.answered > 0 ? Math.round(d.correct / d.answered * 100) : 0;
+    return `<div class="stats-row-item">
+      <span style="color:${catColors[cat]};font-weight:700">${cat}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:0.75rem;color:#999">${d.correct}/${d.answered}問</span>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${rate}%;background:${catColors[cat]}"></div></div>
+        <strong>${rate}%</strong>
+      </div>
+    </div>`;
+  }).join('');
+  const weakEntries = Object.entries(s.wrongQuestions).sort((a,b) => b[1].count - a[1].count).slice(0, 20);
+  document.getElementById('stats-weak-content').innerHTML = weakEntries.length === 0
+    ? '<p class="no-data">苦手問題はありません</p>'
+    : weakEntries.map(([id, info]) => {
+        const q = ALL_QUESTIONS.find(x => x.id === parseInt(id));
+        return `<div class="weak-item">
+          <span class="weak-qnum">Q${id}</span>
+          <span>${q ? q.q.substring(0, 55) + '...' : ''}</span>
+          <span class="wrong-cnt">${info.count}回誤答</span>
+        </div>`;
+      }).join('');
+}
+
+// ===== SETTINGS =====
+function loadSettingsUI() {
+  const cfg = getSettings();
+  document.getElementById('gas-url').value = cfg.gasUrl || '';
+  document.getElementById('test-result').style.display = 'none';
+}
+
+function saveSettings() {
+  const url = document.getElementById('gas-url').value.trim();
+  saveSettings2({ gasUrl: url });
+  updateSyncBadge();
+  showScreen('home');
+  if (url) showToast('✅ 設定を保存しました');
+}
+
+function resetAll() {
+  if (confirm('すべての成績データをリセットします。よろしいですか？')) {
+    localStorage.removeItem('pmp_stats_v2');
+    renderHome();
+    showToast('🗑 データをリセットしました');
+  }
+}
+
+// ===== INIT =====
+renderHome();
+// Auto load from Sheets on startup
+(async () => {
+  const url = getGasUrl();
+  if (url) await syncFromSheets(false);
+})();
+</script>
+</body>
+</html>
