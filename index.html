@@ -171,14 +171,14 @@
 <div id="screen-home" class="screen active">
   <div class="welcome-card">
     <h2>PMP演習モードを選択</h2>
-    <p>全180問から出題。苦手問題は3回連続正答で自動的にリストから除外されます。</p>
+    <p>全180問から出題。通常モードは分野と出題履歴を平準化し、苦手集中モードは誤答問題を優先します。</p>
   </div>
   <div class="stats-row" id="home-stats"></div>
   <div class="mode-cards">
     <div class="mode-card selected" id="mode-normal" onclick="selectMode('normal')">
       <div class="mode-icon">📚</div>
       <h3>通常モード</h3>
-      <p>全180問からランダムに出題します</p>
+      <p>分野・出題履歴を考慮して満遍なく出題します</p>
     </div>
     <div class="mode-card weak" id="mode-weak" onclick="selectMode('weak')">
       <div class="mode-icon">🎯</div>
@@ -330,6 +330,7 @@ function getStats() {
   const s = loadStorage();
   if (!s.byCategory)     s.byCategory     = {};
   if (!s.wrongQuestions) s.wrongQuestions = {};
+  if (!s.byQuestion)     s.byQuestion     = {};
   if (!s.totalAnswered)  s.totalAnswered  = 0;
   if (!s.totalCorrect)   s.totalCorrect   = 0;
   return s;
@@ -351,6 +352,12 @@ function recordResult(qid, category, isCorrect) {
   if (!s.byCategory[category]) s.byCategory[category] = {answered:0, correct:0};
   s.byCategory[category].answered++;
   if (isCorrect) s.byCategory[category].correct++;
+
+  if (!s.byQuestion[qid]) s.byQuestion[qid] = {attemptCount:0, correctCount:0, wrongCount:0, lastAnswered:0};
+  s.byQuestion[qid].attemptCount++;
+  if (isCorrect) s.byQuestion[qid].correctCount++;
+  else s.byQuestion[qid].wrongCount++;
+  s.byQuestion[qid].lastAnswered = Date.now();
 
   if (!isCorrect) {
     // 誤答：カウント増加、連続正答リセット
@@ -513,21 +520,150 @@ function updateCustomCount(val) {
   selectedCount = Math.min(180, Math.max(1, parseInt(val) || 1));
 }
 
+function shuffleCopy(arr) {
+  const copied = [...arr];
+  for (let i = copied.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copied[i], copied[j]] = [copied[j], copied[i]];
+  }
+  return copied;
+}
+
+function enrichForScheduling(q, stats) {
+  const h = stats.byQuestion?.[q.id] || {};
+  return {
+    ...q,
+    _rand: Math.random(),
+    _attemptCount: h.attemptCount || 0,
+    _lastAnswered: h.lastAnswered || 0
+  };
+}
+
+function compareQuestionPriority(a, b) {
+  if (a._attemptCount !== b._attemptCount) return a._attemptCount - b._attemptCount;
+  if (a._lastAnswered !== b._lastAnswered) return a._lastAnswered - b._lastAnswered;
+  return a._rand - b._rand;
+}
+
+function stripSchedulingFields(q) {
+  const {_rand, _attemptCount, _lastAnswered, _wrongCount, _lastWrong, ...clean} = q;
+  return clean;
+}
+
+function buildCategoryQuota(grouped, count) {
+  const categories = Object.keys(grouped).filter(cat => grouped[cat].length > 0);
+  const quota = {};
+  categories.forEach(cat => quota[cat] = 0);
+
+  for (let i = 0; i < count; i++) {
+    const candidates = categories.filter(cat => quota[cat] < grouped[cat].length);
+    if (candidates.length === 0) break;
+
+    const targetCat = candidates.sort((a, b) => {
+      const ar = quota[a] / Math.max(grouped[a].length, 1);
+      const br = quota[b] / Math.max(grouped[b].length, 1);
+      if (ar !== br) return ar - br;
+
+      const au = grouped[a].filter(q => q._attemptCount === 0).length;
+      const bu = grouped[b].filter(q => q._attemptCount === 0).length;
+      if (au !== bu) return bu - au;
+
+      return grouped[b].length - grouped[a].length;
+    })[0];
+
+    quota[targetCat]++;
+  }
+
+  return quota;
+}
+
+function interleaveByCategory(questions) {
+  const grouped = {};
+  questions.forEach(q => {
+    if (!grouped[q.category]) grouped[q.category] = [];
+    grouped[q.category].push(q);
+  });
+  Object.keys(grouped).forEach(cat => grouped[cat] = shuffleCopy(grouped[cat]));
+
+  const result = [];
+  let lastCat = null;
+  while (result.length < questions.length) {
+    const candidates = Object.keys(grouped).filter(cat => grouped[cat].length > 0);
+    if (candidates.length === 0) break;
+
+    candidates.sort((a, b) => {
+      const sameA = a === lastCat ? 1 : 0;
+      const sameB = b === lastCat ? 1 : 0;
+      if (sameA !== sameB) return sameA - sameB;
+      return grouped[b].length - grouped[a].length;
+    });
+
+    const cat = candidates[0];
+    result.push(grouped[cat].shift());
+    lastCat = cat;
+  }
+
+  return result;
+}
+
+function buildBalancedPool(stats, count) {
+  const categories = [...new Set(ALL_QUESTIONS.map(q => q.category).filter(Boolean))];
+  const grouped = {};
+  categories.forEach(cat => {
+    grouped[cat] = ALL_QUESTIONS
+      .filter(q => q.category === cat)
+      .map(q => enrichForScheduling(q, stats))
+      .sort(compareQuestionPriority);
+  });
+
+  const targetCount = Math.min(count, ALL_QUESTIONS.length);
+  const quota = buildCategoryQuota(grouped, targetCount);
+  let selected = [];
+  categories.forEach(cat => selected.push(...grouped[cat].slice(0, quota[cat] || 0)));
+
+  if (selected.length < targetCount) {
+    const selectedIds = new Set(selected.map(q => q.id));
+    const remaining = ALL_QUESTIONS
+      .filter(q => !selectedIds.has(q.id))
+      .map(q => enrichForScheduling(q, stats))
+      .sort(compareQuestionPriority);
+    selected.push(...remaining.slice(0, targetCount - selected.length));
+  }
+
+  return interleaveByCategory(selected).slice(0, targetCount).map(stripSchedulingFields);
+}
+
+function buildWeakPool(stats, count) {
+  const wrongIds = Object.keys(stats.wrongQuestions || {}).map(Number);
+  const weakPool = ALL_QUESTIONS
+    .filter(q => wrongIds.includes(q.id))
+    .map(q => {
+      const w = stats.wrongQuestions[q.id] || {};
+      return {...q, _rand: Math.random(), _wrongCount: w.count || 0, _lastWrong: w.lastWrong || 0};
+    })
+    .sort((a, b) => {
+      if (a._wrongCount !== b._wrongCount) return b._wrongCount - a._wrongCount;
+      if (a._lastWrong !== b._lastWrong) return b._lastWrong - a._lastWrong;
+      return a._rand - b._rand;
+    });
+
+  return weakPool.slice(0, Math.min(count, weakPool.length)).map(stripSchedulingFields);
+}
+
 // ===== QUIZ =====
 function startQuiz() {
   const s = getStats();
-  let pool = [...ALL_QUESTIONS];
+  const count = Math.min(selectedCount || 10, ALL_QUESTIONS.length);
+  let pool;
+
   if (currentMode === 'weak') {
-    const wrongIds = Object.keys(s.wrongQuestions).map(Number);
-    const weakPool = pool.filter(q => wrongIds.includes(q.id));
-    if (weakPool.length > 0) pool = weakPool;
+    pool = buildWeakPool(s, count);
+    if (pool.length === 0) pool = buildBalancedPool(s, count);
+  } else {
+    pool = buildBalancedPool(s, count);
   }
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  const count = Math.min(selectedCount || 10, pool.length);
-  sessionQuestions = pool.slice(0, count);
+
+  sessionQuestions = pool;
   sessionResults = [];
   sessionGraduated = [];
   currentIdx = 0;
