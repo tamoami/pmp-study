@@ -45,6 +45,13 @@
   .count-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .count-btn { padding: 9px 18px; border: 2px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--text); transition: all .15s; }
   .count-btn:hover,.count-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .domain-selector { background: var(--card); border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 6px rgba(0,0,0,.05); margin-bottom: 16px; }
+  .domain-selector h3 { font-size: .9rem; font-weight: 700; margin-bottom: 12px; }
+  .domain-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .domain-btn { padding: 9px 18px; border: 2px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--text); transition: all .15s; }
+  .domain-btn:hover,.domain-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .domain-info { margin-top: 10px; font-size: .8rem; color: var(--muted); font-weight: 600; }
+  .domain-info.warn { color: #d97706; }
   .custom-input { display: none; align-items: center; gap: 8px; margin-top: 10px; }
   .custom-input.show { display: flex; }
   .custom-input input { width: 80px; padding: 7px 10px; border: 2px solid var(--border); border-radius: 8px; font-size: .88rem; text-align: center; }
@@ -187,6 +194,16 @@
       <div class="weak-count" id="weak-count-label">0問</div>
     </div>
   </div>
+  <div class="domain-selector">
+    <h3>分野で絞り込み</h3>
+    <div class="domain-btns">
+      <button class="domain-btn selected" id="domain-all" onclick="selectDomain('all')">全分野</button>
+      <button class="domain-btn" id="domain-人" onclick="selectDomain('人')">人</button>
+      <button class="domain-btn" id="domain-プロセス" onclick="selectDomain('プロセス')">プロセス</button>
+      <button class="domain-btn" id="domain-ビジネス環境" onclick="selectDomain('ビジネス環境')">ビジネス環境</button>
+    </div>
+    <div class="domain-info" id="domain-info"></div>
+  </div>
   <div class="count-selector">
     <h3>出題数を選択</h3>
     <div class="count-btns">
@@ -311,6 +328,7 @@ const CORRECT_TO_GRADUATE = 3; // 連続正答でリストから除外する回�
 // ===== STATE =====
 let currentMode = 'normal';
 let selectedCount = 10;
+let selectedDomain = 'all';
 let sessionQuestions = [];
 let currentIdx = 0;
 let sessionResults = [];   // {id, category, correct, graduated}
@@ -496,6 +514,7 @@ function renderHome() {
   } else {
     weakCard.style.opacity = '1'; weakCard.style.cursor = 'pointer';
   }
+  updateDomainUI();
   updateSyncBadge();
 }
 
@@ -505,6 +524,7 @@ function selectMode(mode) {
   currentMode = mode;
   document.getElementById('mode-normal').classList.toggle('selected', mode === 'normal');
   document.getElementById('mode-weak').classList.toggle('selected', mode === 'weak');
+  updateDomainUI();
 }
 
 function selectCount(n, btn) {
@@ -518,6 +538,40 @@ function selectCount(n, btn) {
 
 function updateCustomCount(val) {
   selectedCount = Math.min(180, Math.max(1, parseInt(val) || 1));
+}
+
+// ===== DOMAIN FILTER =====
+function getDomainSource() {
+  return selectedDomain === 'all' ? ALL_QUESTIONS : ALL_QUESTIONS.filter(q => q.category === selectedDomain);
+}
+
+function selectDomain(domain) {
+  selectedDomain = domain;
+  updateDomainUI();
+}
+
+function updateDomainUI() {
+  const domains = ['all', '人', 'プロセス', 'ビジネス環境'];
+  domains.forEach(d => {
+    const btn = document.getElementById('domain-' + d);
+    if (!btn) return;
+    btn.classList.toggle('selected', selectedDomain === d);
+    const n = d === 'all' ? ALL_QUESTIONS.length : ALL_QUESTIONS.filter(q => q.category === d).length;
+    btn.textContent = (d === 'all' ? '全分野' : d) + ' (' + n + '問)';
+  });
+  const info = document.getElementById('domain-info');
+  if (!info) return;
+  const s = getStats();
+  const source = getDomainSource();
+  const wrongIds = new Set(Object.keys(s.wrongQuestions || {}).map(Number));
+  const weakN = source.filter(q => wrongIds.has(q.id)).length;
+  let text = '出題対象: ' + source.length + '問（苦手: ' + weakN + '問）';
+  info.classList.remove('warn');
+  if (currentMode === 'weak' && weakN === 0) {
+    text += ' ⚠ この分野に苦手問題がないため、通常出題になります';
+    info.classList.add('warn');
+  }
+  info.textContent = text;
 }
 
 function shuffleCopy(arr) {
@@ -606,24 +660,24 @@ function interleaveByCategory(questions) {
   return result;
 }
 
-function buildBalancedPool(stats, count) {
-  const categories = [...new Set(ALL_QUESTIONS.map(q => q.category).filter(Boolean))];
+function buildBalancedPool(stats, count, source = ALL_QUESTIONS) {
+  const categories = [...new Set(source.map(q => q.category).filter(Boolean))];
   const grouped = {};
   categories.forEach(cat => {
-    grouped[cat] = ALL_QUESTIONS
+    grouped[cat] = source
       .filter(q => q.category === cat)
       .map(q => enrichForScheduling(q, stats))
       .sort(compareQuestionPriority);
   });
 
-  const targetCount = Math.min(count, ALL_QUESTIONS.length);
+  const targetCount = Math.min(count, source.length);
   const quota = buildCategoryQuota(grouped, targetCount);
   let selected = [];
   categories.forEach(cat => selected.push(...grouped[cat].slice(0, quota[cat] || 0)));
 
   if (selected.length < targetCount) {
     const selectedIds = new Set(selected.map(q => q.id));
-    const remaining = ALL_QUESTIONS
+    const remaining = source
       .filter(q => !selectedIds.has(q.id))
       .map(q => enrichForScheduling(q, stats))
       .sort(compareQuestionPriority);
@@ -633,9 +687,9 @@ function buildBalancedPool(stats, count) {
   return interleaveByCategory(selected).slice(0, targetCount).map(stripSchedulingFields);
 }
 
-function buildWeakPool(stats, count) {
+function buildWeakPool(stats, count, source = ALL_QUESTIONS) {
   const wrongIds = Object.keys(stats.wrongQuestions || {}).map(Number);
-  const weakPool = ALL_QUESTIONS
+  const weakPool = source
     .filter(q => wrongIds.includes(q.id))
     .map(q => {
       const w = stats.wrongQuestions[q.id] || {};
@@ -653,14 +707,16 @@ function buildWeakPool(stats, count) {
 // ===== QUIZ =====
 function startQuiz() {
   const s = getStats();
-  const count = Math.min(selectedCount || 10, ALL_QUESTIONS.length);
+  const source = getDomainSource();
+  if (source.length === 0) { showToast('⚠ 選択した分野に問題がありません'); return; }
+  const count = Math.min(selectedCount || 10, source.length);
   let pool;
 
   if (currentMode === 'weak') {
-    pool = buildWeakPool(s, count);
-    if (pool.length === 0) pool = buildBalancedPool(s, count);
+    pool = buildWeakPool(s, count, source);
+    if (pool.length === 0) pool = buildBalancedPool(s, count, source);
   } else {
-    pool = buildBalancedPool(s, count);
+    pool = buildBalancedPool(s, count, source);
   }
 
   sessionQuestions = pool;
@@ -675,7 +731,7 @@ function renderQuestion() {
   const q = sessionQuestions[currentIdx];
   const total = sessionQuestions.length;
   answered = false; selectedChoices = [];
-  document.getElementById('quiz-progress').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('quiz-progress').textContent = `${currentIdx + 1} / ${total}` + (selectedDomain !== 'all' ? `　【${selectedDomain}】` : '');
   document.getElementById('progress-bar').style.width = (currentIdx / total * 100) + '%';
   const badge = document.getElementById('cat-badge');
   badge.textContent = q.category;
